@@ -22,7 +22,7 @@
 | **空间数据库层** | **PostgreSQL 18 + PostGIS 3.x** (`webgis_history`) | 存储 5 张空间表（`heritage_sites`、`reform_events`、`cities`、`urban_builtup`、`china_provinces`），全部建立 `GIST` 空间索引；提供 `ST_Buffer(geography)`、`ST_DWithin`、`ST_UnaryUnion`、`ST_Difference`、`ST_Area(geography)` 与省域空间连接视图 `v_province_spatial_stats` |
 | **GIS 服务器层** | **GeoServer 2.27** (`workspace: webgis`, `store: postgis_history`) + 内置 OGC 网关 | 发布标准 **OGC WMS / WFS** 服务（`webgis:heritage_sites`、`webgis:reform_events`、`webgis:urban_builtup`、`webgis:china_provinces`），支持 `GetCapabilities` 与 `GetFeature` GeoJSON 矢量流 |
 | **Web 后端层** | **Node.js 原生空间后端** (`server/server.cjs` + `server/pg-wire.cjs`) | 零外部依赖直连 PostGIS Wire Protocol v3，提供 RESTful 空间分析接口（`/api/spatial/buffer`、`/api/spatial/builtup`、`/api/spatial/provinces-stats`、`/api/heritage` CRUD）及 GeoServer 反向代理与离线降级兜底 |
-| **Web 前端层** | 原生 HTML5 / CSS3 / **ES Module** + **MapLibre GL JS** + **Turf.js 6.5** + **ECharts 5.5** | 在线天地图合规矢量底图（`vec_w` + `cva_w`，GS(2023)336号）+ 本地增强离线底图自动/手动切换；交互式测地距离/面积量算工具、四城遗产/改革事件图层联动、人口/GDP 双轴图表 |
+| **Web 前端层** | 原生 HTML5 / CSS3 / **ES Module** + **MapLibre GL JS** + **Turf.js 6.5** + **ECharts 5.5** | 国家地理信息公共服务平台「天地图」在线矢量底图（`vec_w` + `cva_w`，审图号 GS(2023)336号），严格锁定原生最高级别 Z17 防止空白瓦片；交互式测地距离/面积量算工具、四城遗产/改革事件图层联动、人口/GDP 双轴图表 |
 
 ---
 
@@ -82,22 +82,21 @@ webgis-history/
 │       └── init_postgis.sql# PostGIS 空间表结构、GIST 索引与省域空间统计视图脚本
 ├── js/                     # 12 个前端 ES 模块
 │   ├── gis-tools.js        # 交互式测地测距/测面、GeoServer WFS 图层与专题图层工具
-│   ├── layerpanel.js       # 通用图层面板（底图切换 + 图层显隐 + 量算工具 + 真实语义芯片图例）
+│   ├── layerpanel.js       # 通用图层面板（图层显隐 + 量算工具 + 真实语义芯片图例）
 │   ├── map.js              # 地图实例管理、精确 Web Mercator 比例尺/分辨率状态栏
-│   ├── basemap.js          # 底图引擎（天地图在线瓦片 + 本地增强离线底图）
+│   ├── basemap.js          # 底图引擎（天地图在线矢量瓦片 + 缩放上限硬锁管控）
 │   ├── layers.js           # 遗产点 / 改革事件矢量芯片图层与省域真实边界高亮
 │   ├── charts.js           # ECharts 墨色/珊瑚/淡紫数据主题（折线/面积、柱状、人口+GDP双轴图）
 │   ├── cities.js           # 四城记忆页逻辑
-│   └── analysis.js         # 三大 GIS 实验室前端逻辑（含多边形合并内存缓存）
-├── _archive/               # 2026-10-28 精简下线文件（历史文化/改革开放页及专属脚本）
+│   └── analysis.js         # 三大 GIS 实验室前端逻辑（含多边形合并内存缓存与带图弹窗）
+├── _archive/               # 归档历史与离线底图备份文件
 ├── data/                   # 空间与统计数据集
-│   ├── heritage.geojson    # 20 处真实文化遗产（6大类别全覆盖）
-│   ├── reform-events.json  # 22 起改革开放关键空间事件（1978–2001）
-│   ├── cities.json         # 深圳/上海/广州/厦门四城元信息
-│   ├── city-statistics.json# 四城 1980–2020 人口与 GDP 统计序列
+│   ├── heritage.geojson    # 34 处历史文化遗产（四城重点全覆盖，配有真实照片与史料出处）
+│   ├── reform-events.json  # 32 起改革开放关键空间事件（1978–2020，沿海开放城市精准至开发区/港区）
+│   ├── cities.json         # 深圳/上海/广州/厦门四城元信息与大事记
+│   ├── city-statistics.json# 四城 1980–2020 人口与 GDP 统计序列（附权威统计年鉴出处）
 │   ├── china-provinces.geojson # 中国省级行政区划（WGS84）
-│   ├── basemap/            # 离线增强底图数据（Natural Earth 10m 水系/道路/铁路 + 合规地名 + 九段线）
-│   └── urban-expansion/    # 深圳/上海/广州/厦门四城多时期建成区轮廓（1990/2000/2014）
+│   └── urban-expansion/    # 九城多时期建成区轮廓（1990/2000/2014，AUE 遥感真实解译）
 ├── vendor/                 # 本地第三方库（MapLibre GL / ECharts / Turf.js）
 ├── assets/                 # 本地化遗产与城市实景照片（附 credits.json）
 └── scripts/                # 数据生成与 Playwright 自动化测试套件
