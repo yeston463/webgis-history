@@ -1,0 +1,29 @@
+/* Extracted from https://blueyard.com/ with the extract-design-system workflow.
+   Only typography and spacing were recoverable; the canvas gradient palette was
+   captured by visual review and applied in ../css/base.css (peach #ffcf9e,
+   coral #ff6b4a, lilac #babfff, ink #090b11). */
+
+:root {
+  --font-heading: Instrument Sans;
+  --font-body: Instrument Sans;
+  --space-1: 4px;
+  --space-2: 6px;
+  --space-3: 8px;
+  --space-4: 10px;
+  --space-5: 12px;
+  --space-6: 14px;
+  --space-7: 16px;
+  --space-8: 24px;
+  --space-9: 28px;
+  --space-10: 32px;
+  --space-11: 48px;
+  --space-12: 60px;
+  --space-13: 72px;
+  --space-14: 80px;
+  --space-15: 120px;
+  --space-16: 162px;
+  --space-17: 400px;
+  --space-18: 540px;
+  --space-19: 810px;
+  --space-20: 1080px;
+}

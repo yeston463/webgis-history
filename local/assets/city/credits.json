@@ -1,0 +1,181 @@
+{
+  "note": "图片来源为百度百科城市词条配图，版权归原作者/机构所有，仅用于课程作业非商业展示。",
+  "total": 4,
+  "images": [
+    {
+      "key": "shenzhen",
+      "name": "深圳",
+      "main": "shenzhen.jpg",
+      "candidates": [
+        "shenzhen.jpg",
+        "shenzhen-2.jpg",
+        "shenzhen-3.jpg",
+        "shenzhen-4.png"
+      ],
+      "files": [
+        {
+          "file": "shenzhen.jpg",
+          "bytes": 798084,
+          "dims": "1920x1229",
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/6159252dd42a2834349ba59ccfe8deea15ce37d311ac"
+        },
+        {
+          "file": "shenzhen-2.jpg",
+          "bytes": 178177,
+          "dims": "1600x900",
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/dcc451da81cb39db516fb528dc160924ab183025"
+        },
+        {
+          "file": "shenzhen-3.jpg",
+          "bytes": 373394,
+          "dims": "1920x1137",
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/377adab44aed2e738bd4ebd11858b68b87d6267f4c8e"
+        },
+        {
+          "file": "shenzhen-4.png",
+          "bytes": 907104,
+          "dims": "960x666",
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/4afbfbedab64034f78f04e9b8c986e310a55b219b7a1?x-bce-process=image/resize,m_lfit,w_960,h_960,limit_1/format,f_png"
+        }
+      ],
+      "bytes": 372467,
+      "dims": "1212x675",
+      "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/cb8065380cd7912397edff89a1345982b2b78039",
+      "source": "百度百科",
+      "sourcePage": "https://baike.baidu.com/item/%E6%B7%B1%E5%9C%B3"
+    },
+    {
+      "key": "shanghai",
+      "name": "上海",
+      "main": "shanghai.jpg",
+      "candidates": [
+        "shanghai.jpg",
+        "shanghai-2.jpg",
+        "shanghai-3.png",
+        "shanghai-4.png"
+      ],
+      "files": [
+        {
+          "file": "shanghai.jpg",
+          "bytes": 389094,
+          "dims": "1920x1080",
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/023b5bb5c9ea15ce36d374ed28592df33a87e8501487"
+        },
+        {
+          "file": "shanghai-2.jpg",
+          "bytes": 258055,
+          "dims": "1621x1050",
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/dbb44aed2e738bd4b31c0bc8cdd690d6277f9f2f538e"
+        },
+        {
+          "file": "shanghai-3.png",
+          "bytes": 514913,
+          "dims": "851x511",
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/b812c8fcc3cec3fdfc03c1c789d5c33f8794a4c28976"
+        },
+        {
+          "file": "shanghai-4.png",
+          "bytes": 838114,
+          "dims": "960x576",
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/b7003af33a87e950352a06d795654443fbf2b2111e40?x-bce-process=image/resize,m_lfit,w_960,h_960,limit_1/format,f_png"
+        }
+      ],
+      "bytes": 389094,
+      "dims": "1920x1080",
+      "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/023b5bb5c9ea15ce36d374ed28592df33a87e8501487",
+      "source": "百度百科",
+      "sourcePage": "https://baike.baidu.com/item/%E4%B8%8A%E6%B5%B7"
+    },
+    {
+      "key": "guangzhou",
+      "name": "广州",
+      "main": "guangzhou.jpg",
+      "candidates": [
+        "guangzhou.jpg",
+        "guangzhou-2.jpg",
+        "guangzhou-3.jpg",
+        "guangzhou-4.jpg"
+      ],
+      "files": [
+        {
+          "file": "guangzhou.jpg",
+          "bytes": 401385,
+          "dims": "1920x1280",
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/f9dcd100baa1cd11728b31e78f4edffcc3cec2fd87fa"
+        },
+        {
+          "file": "guangzhou-2.jpg",
+          "bytes": 401385,
+          "dims": "1920x1280",
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/f9dcd100baa1cd11728b31e78f4edffcc3cec2fd87fa"
+        },
+        {
+          "file": "guangzhou-3.jpg",
+          "bytes": 272112,
+          "dims": "1164x699",
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/77c6a7efce1b9d16fdfa557b8883a38f8c5494eece21"
+        },
+        {
+          "file": "guangzhou-4.jpg",
+          "bytes": 136934,
+          "dims": "1080x648",
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/10dfa9ec8a13632762d039e8d5d2b7ec08fa503d69e0"
+        }
+      ],
+      "bytes": 401385,
+      "dims": "1920x1280",
+      "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/f9dcd100baa1cd11728b31e78f4edffcc3cec2fd87fa",
+      "source": "百度百科",
+      "sourcePage": "https://baike.baidu.com/item/%E5%B9%BF%E5%B7%9E"
+    },
+    {
+      "key": "xiamen",
+      "name": "厦门（鼓浪屿）",
+      "main": "xiamen.jpg",
+      "candidates": [
+        "xiamen.jpg",
+        "xiamen-2.jpg",
+        "xiamen-3.png",
+        "xiamen-4.jpg",
+        "xiamen-3.jpg"
+      ],
+      "files": [
+        {
+          "file": "xiamen.jpg",
+          "bytes": 276293,
+          "dims": "1653x941",
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/10dfa9ec8a13632762d0f98895d4b7ec08fa513d694f"
+        },
+        {
+          "file": "xiamen-2.jpg",
+          "bytes": 219676,
+          "dims": "1203x799",
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/b3b7d0a20cf431adcbefec29f46ebbaf2edda3cc32d0"
+        },
+        {
+          "file": "xiamen-3.png",
+          "bytes": 829595,
+          "dims": "960x576",
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/c83d70cf3bc79f3df8dcd0711df5da11728b4710836c?x-bce-process=image/resize,m_lfit,w_960,h_960,limit_1/format,f_png"
+        },
+        {
+          "file": "xiamen-4.jpg",
+          "bytes": 106380,
+          "dims": "1080x648",
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/6609c93d70cf3bc79f3d1ca51248ada1cd11728bfc6b"
+        },
+        {
+          "file": "xiamen-3.jpg",
+          "bytes": 610063,
+          "dims": "1920x1440",
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/f703738da9773912235fda9cf6198618377ae2d6"
+        }
+      ],
+      "bytes": 219676,
+      "dims": "1203x799",
+      "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/b3b7d0a20cf431adcbefec29f46ebbaf2edda3cc32d0",
+      "source": "百度百科",
+      "sourcePage": "https://baike.baidu.com/item/%E9%BC%93%E6%B5%AA%E5%B1%BF"
+    }
+  ]
+}

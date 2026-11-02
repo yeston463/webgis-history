@@ -1,0 +1,25 @@
+[
+  {
+    "type": "Feature",
+    "geometry": {
+      "type": "Point",
+      "coordinates": [
+        116.6552,
+        23.6665
+      ]
+    },
+    "properties": {
+      "id": "custom-1793327919526",
+      "name": "潮州广济桥",
+      "category": "building",
+      "city": "潮州",
+      "period": "南宋（1171年）",
+      "description": "中国四大古桥之一，集梁桥、浮桥、拱桥于一体，见证韩江航运与粤东商贸。",
+      "image": null,
+      "source": "PostGIS 在线空间入库标注",
+      "sourceUrl": "",
+      "gallery": [],
+      "isCustom": true
+    }
+  }
+]

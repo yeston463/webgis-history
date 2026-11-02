@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light" />
+  <meta name="theme-color" content="#fff6f4" />
+  <link rel="icon" href="../assets/brand/favicon.png" type="image/png" />
+  <title>四城记忆 · 山海新篇</title>
+  <link rel="stylesheet" href="../vendor/maplibre/maplibre-gl.css" />
+  <link rel="stylesheet" href="../css/base.css?v=28" />
+  <link rel="stylesheet" href="../css/layout.css?v=28" />
+  <link rel="stylesheet" href="../css/components.css?v=28" />
+  <link rel="stylesheet" href="../css/map.css?v=28" />
+  <link rel="stylesheet" href="../css/blueyard.css?v=28" />
+  <link rel="stylesheet" href="../css/animation.css?v=28" />
+  <link rel="stylesheet" href="../css/responsive.css?v=28" />
+  <link rel="stylesheet" href="../css/responsive-blueyard.css?v=28" />
+  <script src="../vendor/maplibre/maplibre-gl.js"></script>
+  <script src="../vendor/echarts/echarts.min.js"></script>
+  <script src="../vendor/turf/turf.min.js"></script>
+</head>
+<body id="top" class="page-cities">
+  <a class="skip-link" href="#main">跳到主要内容</a>
+  <header id="site-header"></header>
+
+  <main id="main">
+    <section class="page-hero">
+      <div class="container page-hero-inner">
+        <div class="page-head">
+          <p class="page-kicker">01 / Cities &amp; Memory</p>
+          <h1 class="page-title">四城记忆</h1>
+          <p class="page-lead">深圳、上海、广州、厦门。四座城市，四条不同的现代化路径，叠加在同一张历史与空间底图上。</p>
+        </div>
+        <div class="page-index" aria-hidden="true">01</div>
+        <div class="page-meta" aria-label="数据范围">
+          <span>1980-2020 参考统计序列</span>
+          <span>4 座样本城市</span>
+          <span>PostGIS / MapLibre</span>
+        </div>
+      </div>
+    </section>
+
+    <div class="container">
+      <div class="city-tabs" id="city-tabs" role="group" aria-label="选择城市"></div>
+
+      <section class="city-masthead" id="city-intro" aria-live="polite"></section>
+
+      <div class="city-layout">
+        <div class="map-frame">
+          <div class="map-root" id="map-root" role="region" aria-label="城市空间地图">
+            <div id="map-city" class="map-canvas"></div>
+            <div class="map-loading" id="map-loading" role="status"><div class="spinner"></div>地图加载中</div>
+            <aside class="layer-panel" id="layer-panel"></aside>
+          </div>
+        </div>
+        <aside class="city-dossier" id="city-detail" aria-label="城市档案"></aside>
+      </div>
+
+      <section class="city-gallery" id="city-gallery" aria-label="城市影像"></section>
+    </div>
+  </main>
+
+  <footer id="site-footer"></footer>
+
+  <script src="../js/local-data-shared.js"></script>
+  <script src="../js/local-data-cities.js"></script>
+  <script src="../js/cities.bundle.js"></script>
+</body>
+</html>

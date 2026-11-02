@@ -1,0 +1,16 @@
+# 自动化测试与运行时临时文件
+test-shots/
+test-results/
+*.zip
+
+# 历史归档与大体积临时数据包
+_archive/
+data/urban-expansion/_ghsl/
+
+# 依赖与环境
+node_modules/
+.agents/
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db

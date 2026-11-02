@@ -1,0 +1,16 @@
+{
+  "name": "webgis-history",
+  "version": "2.0.0",
+  "description": "山海新篇 · 中国历史文化与改革开放时空图鉴 (Node.js + PostGIS + GeoServer WebGIS)",
+  "main": "server/server.cjs",
+  "scripts": {
+    "start": "node server/server.cjs",
+    "init-db": "node server/init-postgis-geoserver.cjs",
+    "test:smoke": "node scripts/smoke-test.cjs",
+    "test:detail": "node scripts/detail-test.cjs",
+    "test:basemap": "node scripts/verify-basemap.cjs"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,483 @@
+/* ==========================================================================
+   responsive.css - Explicit collapse rules for every multi-column layout
+   Breakpoints: 1100, 900, 768, 560, 480
+   ========================================================================== */
+
+/* ---------- <= 1100: two-column home, stacked lab ---------- */
+@media (max-width: 1100px) {
+  .hero-plate {
+    height: clamp(360px, 48vw, 480px);
+  }
+  .city-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .city-masthead {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  }
+  .city-figures {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    border-bottom: 1px solid var(--line);
+  }
+  .city-figure {
+    flex: 1;
+    padding: 10px 18px;
+    border-bottom: 0;
+    border-left: 1px solid var(--line);
+  }
+  .city-figure:first-child {
+    padding-left: 0;
+    border-left: 0;
+  }
+  .city-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .city-gallery-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(2, 190px);
+  }
+  .gallery-item:nth-child(n) {
+    grid-column: auto;
+    grid-row: auto;
+  }
+  .city-dossier {
+    max-height: none;
+    overflow: visible;
+  }
+  .lab-grid,
+  .lab-services-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------- <= 900: hero stacks, plate keeps asymmetry ---------- */
+@media (max-width: 900px) {
+  .hero-inner {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 32px;
+  }
+  .hero-copy {
+    max-width: 640px;
+  }
+  .hero-title {
+    font-size: clamp(64px, 13vw, 96px);
+  }
+  .hero-plate {
+    height: clamp(340px, 52vw, 460px);
+  }
+  .page-hero-inner {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 22px;
+  }
+  .page-meta {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0 20px;
+    min-width: 0;
+  }
+  .page-meta span {
+    width: auto;
+    border-bottom: 0;
+  }
+  .page-meta span:last-child {
+    border-bottom: 0;
+  }
+  .engine-readout {
+    min-width: 0;
+  }
+  .engine-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+}
+
+/* ---------- <= 768: compact header, single-column content ---------- */
+@media (max-width: 768px) {
+  :root {
+    --header-h: 60px;
+  }
+  #site-header {
+    padding-inline: 16px;
+    gap: 14px;
+  }
+  .brand {
+    gap: 9px;
+  }
+  .brand-mark {
+    width: 28px;
+    height: 28px;
+    font-size: 11px;
+  }
+  .brand-title {
+    font-size: 15px;
+  }
+  .brand-sub {
+    display: none;
+  }
+  .topnav {
+    gap: 18px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .topnav::-webkit-scrollbar {
+    display: none;
+  }
+  .topnav-link {
+    font-size: 12.5px;
+    white-space: nowrap;
+  }
+
+  .container {
+    width: calc(100vw - 32px);
+  }
+
+  .section {
+    padding: 44px 0;
+  }
+  .section-title {
+    font-size: 28px;
+  }
+  .section-desc {
+    font-size: 14px;
+  }
+
+  .hero {
+    padding: 36px 0 40px;
+  }
+  .hero-lead {
+    margin-top: 18px;
+    font-size: 14.5px;
+    line-height: 1.85;
+  }
+  .hero-actions {
+    margin-top: 24px;
+  }
+  .hero-plate {
+    height: clamp(320px, 58vw, 430px);
+  }
+  .plate-caption {
+    font-size: 10.5px;
+  }
+  .plate-caption span {
+    display: none;
+  }
+
+  .figures-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .figure {
+    padding: 18px 16px 20px;
+  }
+  .figure:first-child {
+    padding-left: 0;
+  }
+  .figure:nth-child(odd) {
+    border-left: 0;
+    padding-left: 0;
+  }
+  .figure:nth-child(n + 3) {
+    border-top: 1px solid var(--line);
+  }
+  .figure:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .chapters {
+    padding: 40px 0;
+  }
+  .chapter,
+  .chapter + .chapter {
+    padding: 24px 0;
+  }
+
+  .cities-section {
+    padding: 44px 0 60px;
+  }
+
+  .page-hero {
+    padding: 42px 0 32px;
+  }
+  .page-title {
+    font-size: clamp(40px, 12vw, 56px);
+  }
+  .page-lead {
+    margin-top: 14px;
+    font-size: 14.5px;
+    line-height: 1.8;
+  }
+
+  .city-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .city-tab {
+    padding: 16px 14px;
+    border-left: 1px solid var(--line);
+  }
+  .city-tab:nth-child(odd) {
+    border-left: 0;
+    padding-left: 0;
+  }
+  .city-tab:nth-child(n + 3) {
+    border-top: 1px solid var(--line);
+  }
+  .city-tab .ct-name {
+    font-size: 22px;
+  }
+
+  .city-masthead {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+    padding: 24px 0;
+  }
+  .city-cover {
+    aspect-ratio: 16 / 9;
+  }
+  .city-figures {
+    flex-direction: column;
+    border-bottom: 0;
+  }
+  .city-figure {
+    padding: 9px 0;
+    border-left: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .city-figure:first-child {
+    padding-left: 0;
+  }
+  .city-layout {
+    margin-top: 20px;
+  }
+  .map-frame {
+    height: 56vh;
+    min-height: 400px;
+  }
+  .city-dossier {
+    padding-right: 0;
+  }
+  .city-gallery {
+    padding: 28px 0 56px;
+  }
+  .city-gallery-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: repeat(4, 210px);
+  }
+  .city-gallery-head {
+    align-items: flex-start;
+  }
+  .city-gallery-count {
+    font-size: 10.5px;
+  }
+
+  .lab-subnav {
+    top: var(--header-h);
+  }
+  .lab-subnav-inner {
+    gap: 22px;
+  }
+  .lab-section {
+    padding: 40px 0;
+  }
+  .lab-controls {
+    gap: 12px;
+  }
+  .lab-controls .field {
+    flex: 1 1 calc(50% - 12px);
+    min-width: 140px;
+  }
+  .lab-controls .field input[readonly] {
+    min-width: 0;
+  }
+  #pg-buf-controls .field:first-child {
+    flex: 1 1 100%;
+  }
+
+  .stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .stat-box {
+    padding: 12px 14px;
+  }
+  .stat-box:nth-child(odd) {
+    border-left: 0;
+    padding-left: 0;
+  }
+  .stat-box:nth-child(n + 3) {
+    border-top: 1px solid var(--line);
+  }
+  .stat-box:nth-child(5):last-child {
+    grid-column: 1 / -1;
+  }
+
+  .lab-map {
+    height: 52vh;
+    min-height: 380px;
+  }
+  .lab-grid .lab-map {
+    height: 52vh;
+    min-height: 380px;
+  }
+  .lab-chart-head {
+    align-items: flex-start;
+  }
+
+  .form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .form-grid .field-full {
+    grid-column: auto;
+  }
+
+  .panel,
+  .panel-pad {
+    padding: 16px 16px;
+  }
+
+  .layer-panel {
+    width: min(190px, 52vw);
+  }
+  .map-statusbar {
+    overflow-x: auto;
+    font-size: 10px;
+    white-space: nowrap;
+  }
+  .msb-item {
+    padding: 0 8px;
+  }
+  .msb-credit {
+    display: none;
+  }
+
+  #site-footer {
+    padding: 28px 0 32px;
+  }
+  .footer-inner {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .footer-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+/* ---------- <= 560: 2x2 photo plate, single-column cards ---------- */
+@media (max-width: 560px) {
+  .hero-title {
+    font-size: clamp(56px, 17vw, 76px);
+  }
+  .hero-plate {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    height: auto;
+  }
+  .plate-sz { grid-column: 1; grid-row: 1; }
+  .plate-sh { grid-column: 2; grid-row: 1; }
+  .plate-gz { grid-column: 1; grid-row: 2; }
+  .plate-xm { grid-column: 2; grid-row: 2; }
+  .plate-img {
+    flex: none;
+    aspect-ratio: 4 / 3;
+  }
+
+  .city-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .chapter-title {
+    font-size: 32px;
+  }
+
+  .footer-right {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+/* ---------- <= 480: figures and stats stack ---------- */
+@media (max-width: 480px) {
+  .figures-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .figure,
+  .figure:nth-child(odd) {
+    padding: 14px 12px;
+    border-left: 1px solid var(--line);
+  }
+  .figure:nth-child(odd) {
+    border-left: 0;
+    padding-left: 0;
+  }
+  .figure:nth-child(n + 3) {
+    border-top: 1px solid var(--line);
+  }
+  .figure:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .stat-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .stat-box,
+  .stat-box:nth-child(odd) {
+    padding: 12px 0;
+    border-left: 0;
+  }
+  .stat-box + .stat-box {
+    border-top: 1px solid var(--line);
+  }
+  .stat-box:nth-child(5):last-child {
+    grid-column: auto;
+  }
+
+  .lab-controls .field {
+    flex: 1 1 100%;
+  }
+  .page-title {
+    font-size: 40px;
+  }
+  .hero-title {
+    font-size: 56px;
+  }
+  .city-tab .ct-name {
+    font-size: 20px;
+  }
+  .btn {
+    min-height: 40px;
+    padding: 0 14px;
+  }
+
+  .layer-panel {
+    top: 8px;
+    left: 8px;
+    width: 158px;
+    max-height: calc(100% - 44px);
+    padding: 8px;
+  }
+  .layer-panel .lp-group:last-child {
+    display: none;
+  }
+  .lp-title {
+    margin-bottom: 4px;
+    font-size: 9.5px;
+  }
+  .lp-btn {
+    min-height: 34px;
+    padding: 4px 6px;
+    font-size: 10.5px;
+  }
+  .btn-sm {
+    min-height: 36px;
+  }
+  .ro-close {
+    width: 34px;
+    height: 34px;
+  }
+  .lp-layer {
+    gap: 6px;
+    font-size: 11px;
+  }
+  .lp-basemap {
+    gap: 3px;
+  }
+}

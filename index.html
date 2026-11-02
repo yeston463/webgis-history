@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light" />
+  <meta name="theme-color" content="#fff6f4" />
+  <link rel="icon" href="assets/brand/favicon.png" type="image/png" />
+  <title>山海新篇 · 四城记忆与 GIS 时空分析</title>
+  <meta name="description" content="山海新篇 WebGIS 图册：四城记忆（深圳、上海、广州、厦门）与 GIS 时空分析实验室（九城遥感建成区、PostGIS 缓冲区、OGC 服务）。" />
+  <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css" />
+  <link rel="stylesheet" href="css/base.css?v=28" />
+  <link rel="stylesheet" href="css/layout.css?v=28" />
+  <link rel="stylesheet" href="css/components.css?v=28" />
+  <link rel="stylesheet" href="css/map.css?v=28" />
+  <link rel="stylesheet" href="css/blueyard.css?v=28" />
+  <link rel="stylesheet" href="css/animation.css?v=28" />
+  <link rel="stylesheet" href="css/responsive.css?v=28" />
+  <link rel="stylesheet" href="css/responsive-blueyard.css?v=28" />
+  <script src="vendor/maplibre/maplibre-gl.js"></script>
+  <script src="vendor/echarts/echarts.min.js"></script>
+  <script src="vendor/turf/turf.min.js"></script>
+</head>
+<body id="top" class="page-home">
+  <a class="skip-link" href="#main">跳到主要内容</a>
+  <header id="site-header"></header>
+
+  <main id="main">
+    <section class="hero">
+      <div class="hero-orb" aria-hidden="true"></div>
+      <div class="container hero-inner">
+        <div class="hero-copy">
+          <h1 class="hero-title">山海新篇</h1>
+          <p class="hero-lead">四座样本城市的历史记忆，九城遥感建成区的空间演变，尽在一张可交互的 GIS 图册。</p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="pages/cities.html?build=20261028b">浏览四城记忆</a>
+            <a class="btn btn-ghost" href="pages/analysis.html?build=20261028b">进入分析实验室</a>
+          </div>
+        </div>
+
+        <div class="hero-plate" aria-label="四座样本城市影像">
+          <figure class="plate-item plate-sz">
+            <div class="plate-img">
+              <img src="assets/city/shenzhen.jpg" alt="深圳前海湾与城市天际线" width="1920" height="1229" fetchpriority="high" decoding="async" />
+            </div>
+            <figcaption class="plate-caption">深圳 <span>Shenzhen</span></figcaption>
+          </figure>
+          <figure class="plate-item plate-sh">
+            <div class="plate-img">
+              <img src="assets/city/shanghai.jpg" alt="上海陆家嘴与黄浦江天际线" width="1920" height="1080" decoding="async" />
+            </div>
+            <figcaption class="plate-caption">上海 <span>Shanghai</span></figcaption>
+          </figure>
+          <figure class="plate-item plate-gz">
+            <div class="plate-img">
+              <img src="assets/city/guangzhou.jpg" alt="广州珠江新城与广州塔天际线" width="1920" height="1280" decoding="async" />
+            </div>
+            <figcaption class="plate-caption">广州 <span>Guangzhou</span></figcaption>
+          </figure>
+          <figure class="plate-item plate-xm">
+            <div class="plate-img">
+              <img src="assets/city/xiamen.jpg" alt="厦门演武大桥与滨海天际线" width="1653" height="941" decoding="async" />
+            </div>
+            <figcaption class="plate-caption">厦门 <span>Xiamen</span></figcaption>
+          </figure>
+        </div>
+      </div>
+
+      <div class="container hero-meta">
+        <span>深圳 / 上海 / 广州 / 厦门</span>
+        <span>00 — Atlas</span>
+        <a href="#figures">查看数据</a>
+      </div>
+    </section>
+
+    <div class="ticker" aria-hidden="true">
+      <div class="ticker-inner">
+        <span class="ticker-label">Atlas</span>
+        <div class="ticker-viewport">
+          <div class="ticker-track">
+            <span>Shenzhen 1979—</span>
+            <span>Shanghai Bund</span>
+            <span>Guangzhou Thirteen Factories</span>
+            <span>Xiamen Gulangyu</span>
+            <span>AUE 2016</span>
+            <span>JRC GHSL R2023A</span>
+            <span>PostGIS · MapLibre</span>
+            <span>Nine Urban Samples</span>
+            <span>Shenzhen 1979—</span>
+            <span>Shanghai Bund</span>
+            <span>Guangzhou Thirteen Factories</span>
+            <span>Xiamen Gulangyu</span>
+            <span>AUE 2016</span>
+            <span>JRC GHSL R2023A</span>
+            <span>PostGIS · MapLibre</span>
+            <span>Nine Urban Samples</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <section class="figures" id="figures" aria-label="数据概览">
+      <div class="container figures-grid" data-reveal>
+        <div class="figure">
+          <span class="fig-value">04</span>
+          <span class="fig-label">样本城市</span>
+          <span class="fig-note">深圳 / 上海 / 广州 / 厦门</span>
+        </div>
+        <div class="figure">
+          <span class="fig-value">20</span>
+          <span class="fig-label">文化遗产点位</span>
+          <span class="fig-note">六类遗产地标</span>
+        </div>
+        <div class="figure">
+          <span class="fig-value">22</span>
+          <span class="fig-label">改革开放事件</span>
+          <span class="fig-note">1978-2001</span>
+        </div>
+        <div class="figure">
+          <span class="fig-value">09</span>
+          <span class="fig-label">遥感建成区样本</span>
+          <span class="fig-note">AUE 2016 / JRC GHSL</span>
+        </div>
+        <div class="figure">
+          <span class="fig-value">03</span>
+          <span class="fig-label">遥感时相</span>
+          <span class="fig-note">1990 / 2000 / 2014</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="chapters" aria-label="专题目录">
+      <div class="container chapters-grid" data-reveal>
+        <article class="chapter">
+          <h2 class="chapter-title">四城记忆</h2>
+          <p class="chapter-desc">从四座样本城市出发，阅读历史地标、改革事件与人口 GDP 的时空跃迁。地图、档案与图表在同一页互相印证。</p>
+          <p class="chapter-index">深圳 / 上海 / 广州 / 厦门</p>
+          <a class="chapter-link" href="pages/cities.html?build=20261028b">浏览四城记忆 <span aria-hidden="true">→</span></a>
+        </article>
+        <article class="chapter">
+          <h2 class="chapter-title">分析实验室</h2>
+          <p class="chapter-desc">九城多期建成区卷帘、PostGIS 测地缓冲区与 OGC 服务控制台。关键指标可以回到地图与 SQL 复核。</p>
+          <p class="chapter-index">建成区演变 / 缓冲区共现 / 服务与入库</p>
+          <a class="chapter-link" href="pages/analysis.html?build=20261028b">进入分析实验室 <span aria-hidden="true">→</span></a>
+        </article>
+      </div>
+    </section>
+
+    <section class="section cities-section" aria-label="重点样本城市">
+      <div class="container">
+        <div class="section-head" data-reveal>
+          <div>
+            <h2 class="section-title">四座样本城市</h2>
+            <p class="section-desc">从边陲小镇到创新都会，从海丝商埠到改革潮头。进入城市档案，查看地标、事件与统计序列。</p>
+          </div>
+        </div>
+        <div class="city-grid" id="city-cards"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer id="site-footer"></footer>
+
+  <script type="module">
+    import { initShell, initRevealOnScroll } from './js/main.js?v=27';
+    import { fetchJSON, el, loadImage, assetUrl, placeholderDataURI } from './js/utils.js?v=27';
+
+    initShell();
+
+    if (location.protocol === 'file:') {
+      const wrap = document.getElementById('city-cards');
+      if (wrap) {
+        wrap.innerHTML = `<div class="file-protocol-warning" style="grid-column:1/-1;">
+          <strong>无法通过 file:// 协议直接加载数据</strong>
+          <p>浏览器安全策略禁止本地文件协议跨域读取 GeoJSON 数据，请在命令行启动本地服务：</p>
+          <p><code>node server/server.cjs</code> 或 <code>python -m http.server 8000</code></p>
+          <p>然后访问 <code>http://127.0.0.1:8000/</code> 即可完整体验。</p>
+        </div>`;
+      }
+    }
+
+    (async () => {
+      try {
+        const cities = await fetchJSON('data/cities.json');
+        const wrap = document.getElementById('city-cards');
+        cities.forEach((c) => {
+          const img = el('img', { alt: c.name + '城市实景', width: 640, height: 480, loading: 'lazy', decoding: 'async' });
+          const realCover = assetUrl(c.cover);
+          if (realCover) loadImage(img, realCover, c.name, c.coverCategory || 'building');
+          else img.src = placeholderDataURI(c.name, c.coverCategory || 'building', 640, 480);
+          const card = el('a', {
+            class: 'city-card tap',
+            href: `pages/cities.html?city=${c.key}&build=20261028b`,
+            'data-reveal': '',
+          }, [
+            el('figure', { class: 'cc-figure' }, [img]),
+            el('div', { class: 'cc-body' }, [
+              el('div', { class: 'cc-name', text: c.name }),
+              el('div', { class: 'cc-en', text: c.en || '' }),
+              el('div', { class: 'cc-period', text: c.period || '' }),
+              el('div', { class: 'cc-desc', text: c.short || '' }),
+              el('div', { class: 'cc-go', text: '查看城市档案' }),
+            ]),
+          ]);
+          wrap.appendChild(card);
+        });
+      } catch (e) {
+        console.error('城市卡片加载失败', e);
+      }
+      initRevealOnScroll();
+    })();
+  </script>
+</body>
+</html>

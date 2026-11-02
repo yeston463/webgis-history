@@ -1,0 +1,125 @@
+/* ==========================================================================
+   animation.css - Motivated, low-intensity motion
+   Entry animation: hierarchy. Scroll reveal: storytelling. Hover: feedback.
+   All motion collapses under prefers-reduced-motion.
+   ========================================================================== */
+
+@keyframes hero-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes plate-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes rich-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero-kicker,
+  .hero-title,
+  .hero-lead,
+  .hero-actions {
+    animation: hero-in 0.85s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .hero-kicker { animation-delay: 0.02s; }
+  .hero-title { animation-delay: 0.08s; }
+  .hero-lead { animation-delay: 0.16s; }
+  .hero-actions { animation-delay: 0.24s; }
+
+  .plate-item {
+    animation: plate-in 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .plate-item:nth-child(1) { animation-delay: 0.14s; }
+  .plate-item:nth-child(2) { animation-delay: 0.22s; }
+  .plate-item:nth-child(3) { animation-delay: 0.3s; }
+  .plate-item:nth-child(4) { animation-delay: 0.38s; }
+
+  .js [data-reveal] {
+    opacity: 0;
+    transform: translateY(16px);
+    transition:
+      opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .js [data-reveal].revealed {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Tactile press feedback, no perpetual micro-animation */
+.tap {
+  transition: opacity 0.14s ease;
+}
+.tap:active {
+  opacity: 0.86;
+}
+
+@media print {
+  .js [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .js [data-reveal] {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Solar atlas motion */
+@keyframes ticker-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes orb-drift {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(-2%, -1.5%, 0) scale(1.04); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .hero-orb {
+    will-change: transform;
+    animation: orb-drift 20s ease-in-out infinite alternate;
+  }
+}
+
+@media print {
+  .hero-orb,
+  .ticker {
+    display: none !important;
+  }
+}

@@ -1,0 +1,244 @@
+{
+  "note": "改革开放关键事件配图：城市封面取自 assets/city（百度百科·词条配图），其余按事件 sourceUrl 抓取百度百科词条配图。版权归原作者/机构所有，仅用于课程作业非商业展示。",
+  "generatedAt": "2026-10-17T02:32:21.967Z",
+  "total": 29,
+  "images": [
+    {
+      "title": "设立珠海经济特区",
+      "city": "珠海",
+      "file": "ref-0.jpg",
+      "bytes": 402370,
+      "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/6c224f4a20a4462309f728c9f26b650e0cf3d7ca794c?x-bce-process=image/resize,m_lfit,w_1920,h_1920,limit_1/format,f_jpg/quality,Q_90",
+      "dims": "1920x1280",
+      "sourcePage": "https://baike.baidu.com/item/珠海经济特区"
+    },
+    {
+      "title": "设立汕头经济特区",
+      "city": "汕头",
+      "file": "ref-1.jpg",
+      "bytes": 411762,
+      "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/37d12f2eb9389b504fc2e49dbf62f2dde71191efc0ff?x-bce-process=image/resize,m_lfit,w_1920,h_1920,limit_1/format,f_jpg/quality,Q_90",
+      "dims": "1800x1200",
+      "sourcePage": "https://baike.baidu.com/item/汕头经济特区"
+    },
+    {
+      "title": "沿海开放城市：大连",
+      "city": "大连",
+      "file": "ref-2.jpg",
+      "bytes": 107315,
+      "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/728da9773912b31bb0518183f14e217adab44aed4b58",
+      "dims": "550x339",
+      "sourcePage": "https://baike.baidu.com/item/沿海开放城市"
+    },
+    {
+      "title": "海南建省并设经济特区",
+      "city": "海口",
+      "file": "ref-3.jpg",
+      "bytes": 205174,
+      "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/9e3df8dcd100baa145725fdc4810b912c8fc2e7e?x-bce-process=image/resize,m_lfit,w_1920,h_1920,limit_1/format,f_jpg/quality,Q_90",
+      "dims": "1200x900",
+      "sourcePage": "https://baike.baidu.com/item/海南经济特区"
+    },
+    {
+      "title": "中国加入世界贸易组织（WTO）",
+      "city": "北京",
+      "file": "ref-4.jpg",
+      "bytes": 33203,
+      "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/d833c895d143ad4bd1134e92144c4dafa40f4bfba819",
+      "dims": "500x363",
+      "sourcePage": "https://baike.baidu.com/item/中国加入世界贸易组织"
+    },
+    {
+      "title": "中共十一届三中全会召开",
+      "city": "北京",
+      "file": "ref-5.jpg",
+      "year": 1978,
+      "source": "新华社 / 中国政府网",
+      "sourcePage": "https://baike.baidu.com/item/中国共产党第十一届中央委员会第三次全体会议"
+    },
+    {
+      "title": "蛇口工业区打响“开山第一炮”",
+      "city": "深圳",
+      "file": "shekou.jpg",
+      "year": 1979,
+      "source": "招商局集团 / 深圳市史志办",
+      "sourcePage": "https://baike.baidu.com/item/蛇口工业区"
+    },
+    {
+      "title": "设立深圳经济特区",
+      "city": "深圳",
+      "file": "shenzhen.jpg",
+      "year": 1980,
+      "source": "中国政府网 / 深圳市政府",
+      "sourcePage": "https://baike.baidu.com/item/深圳经济特区"
+    },
+    {
+      "title": "设立厦门经济特区",
+      "city": "厦门",
+      "file": "xiamen.jpg",
+      "year": 1980,
+      "source": "厦门市政府网",
+      "sourcePage": "https://baike.baidu.com/item/厦门经济特区"
+    },
+    {
+      "title": "沿海开放城市：天津泰达（TEDA）",
+      "city": "天津",
+      "file": "ref-tj.jpg",
+      "year": 1984,
+      "source": "天津开发区管委会",
+      "sourcePage": "https://baike.baidu.com/item/天津经济技术开发区"
+    },
+    {
+      "title": "沿海开放城市：烟台开发区",
+      "city": "烟台",
+      "file": "ref-yt.jpg",
+      "year": 1984,
+      "source": "烟台市人民政府",
+      "sourcePage": "https://baike.baidu.com/item/烟台经济技术开发区"
+    },
+    {
+      "title": "沿海开放城市：青岛开发区（前湾港）",
+      "city": "青岛",
+      "file": "ref-qd.jpg",
+      "year": 1984,
+      "source": "青岛市人民政府",
+      "sourcePage": "https://baike.baidu.com/item/青岛经济技术开发区"
+    },
+    {
+      "title": "沿海开放城市：连云港开发区",
+      "city": "连云港",
+      "file": "ref-lyg.jpg",
+      "year": 1984,
+      "source": "连云港市人民政府",
+      "sourcePage": "https://baike.baidu.com/item/连云港经济技术开发区"
+    },
+    {
+      "title": "沿海开放城市：南通开发区",
+      "city": "南通",
+      "file": "ref-nt.jpg",
+      "year": 1984,
+      "source": "南通市人民政府",
+      "sourcePage": "https://baike.baidu.com/item/南通经济技术开发区"
+    },
+    {
+      "title": "沿海开放城市：上海（闵行/虹桥开发区）",
+      "city": "上海",
+      "file": "shanghai-2.jpg",
+      "year": 1984,
+      "source": "上海市人民政府",
+      "sourcePage": "https://baike.baidu.com/item/闵行经济技术开发区"
+    },
+    {
+      "title": "沿海开放城市：宁波开发区（北仑港）",
+      "city": "宁波",
+      "file": "ref-nb.jpg",
+      "year": 1984,
+      "source": "宁波市人民政府",
+      "sourcePage": "https://baike.baidu.com/item/宁波经济技术开发区"
+    },
+    {
+      "title": "沿海开放城市：温州",
+      "city": "温州",
+      "file": "ref-wz.jpg",
+      "year": 1984,
+      "source": "温州市人民政府",
+      "sourcePage": "https://baike.baidu.com/item/温州"
+    },
+    {
+      "title": "沿海开放城市：福州（马尾开发区）",
+      "city": "福州",
+      "file": "ref-fz.jpg",
+      "year": 1984,
+      "source": "福州市人民政府",
+      "sourcePage": "https://baike.baidu.com/item/福州经济技术开发区"
+    },
+    {
+      "title": "沿海开放城市：广州开发区（黄埔）",
+      "city": "广州",
+      "file": "guangzhou-2.jpg",
+      "year": 1984,
+      "source": "广州开发区管委会",
+      "sourcePage": "https://baike.baidu.com/item/广州经济技术开发区"
+    },
+    {
+      "title": "敲响新中国土地拍卖“第一槌”",
+      "city": "深圳",
+      "file": "ref-auction.jpg",
+      "year": 1987,
+      "source": "深圳市规划和自然资源局",
+      "sourcePage": "https://baike.baidu.com/item/深圳土地第一拍"
+    },
+    {
+      "title": "上海浦东开发开放",
+      "city": "上海",
+      "file": "shanghai.jpg",
+      "year": 1990,
+      "source": "上海市浦东新区人民政府",
+      "sourcePage": "https://baike.baidu.com/item/浦东开发开放"
+    },
+    {
+      "title": "上海证券交易所开业",
+      "city": "上海",
+      "file": "ref-sse.jpg",
+      "year": 1990,
+      "source": "上海证券交易所 / 新华社",
+      "sourcePage": "https://baike.baidu.com/item/上海证券交易所"
+    },
+    {
+      "title": "深圳证券交易所试营业",
+      "city": "深圳",
+      "file": "ref-szse.jpg",
+      "year": 1990,
+      "source": "深圳证券交易所",
+      "sourcePage": "https://baike.baidu.com/item/深圳证券交易所"
+    },
+    {
+      "title": "邓小平发表“南方谈话”",
+      "city": "深圳",
+      "file": "ref-nanfang.jpg",
+      "year": 1992,
+      "source": "新华社 / 人民网",
+      "sourcePage": "https://baike.baidu.com/item/邓小平南巡讲话"
+    },
+    {
+      "title": "前海深港现代服务业合作区批复成立",
+      "city": "深圳",
+      "file": "ref-qianhai.jpg",
+      "year": 2010,
+      "source": "前海管理局 / 深圳市政府",
+      "sourcePage": "https://baike.baidu.com/item/前海深港现代服务业合作区"
+    },
+    {
+      "title": "中国（上海）自由贸易试验区正式挂牌",
+      "city": "上海",
+      "file": "ref-shftz.jpg",
+      "year": 2013,
+      "source": "上海市自贸区管委会",
+      "sourcePage": "https://baike.baidu.com/item/中国（上海）自由贸易试验区"
+    },
+    {
+      "title": "中国（广东）自由贸易试验区正式挂牌",
+      "city": "广州",
+      "file": "guangzhou.jpg",
+      "year": 2015,
+      "source": "广东省自贸办",
+      "sourcePage": "https://baike.baidu.com/item/中国（广东）自由贸易试验区"
+    },
+    {
+      "title": "港珠澳大桥正式开通",
+      "city": "珠海",
+      "file": "ref-hzmb.jpg",
+      "year": 2018,
+      "source": "港珠澳大桥管理局 / 新华社",
+      "sourcePage": "https://baike.baidu.com/item/港珠澳大桥"
+    },
+    {
+      "title": "海南自由贸易港建设总体方案发布",
+      "city": "海口",
+      "file": "ref-hainan.jpg",
+      "year": 2020,
+      "source": "中国政府网 / 新华社",
+      "sourcePage": "https://baike.baidu.com/item/海南自由贸易港"
+    }
+  ]
+}

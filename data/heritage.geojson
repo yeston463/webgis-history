@@ -1,0 +1,912 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          116.3974,
+          39.9183
+        ]
+      },
+      "properties": {
+        "id": "forbidden-city",
+        "name": "故宫（紫禁城）",
+        "category": "building",
+        "city": "北京",
+        "period": "明-清（始建于 1420 年）",
+        "description": "明清两代皇家宫殿，世界现存规模最大的木结构宫殿建筑群，1987 年列入世界文化遗产。",
+        "image": "assets/heritage/forbidden-city.jpg",
+        "source": "UNESCO 世界遗产中心 / 故宫博物院",
+        "sourceUrl": "https://baike.baidu.com/item/故宫",
+        "gallery": [
+          "assets/heritage/forbidden-city-2.jpg",
+          "assets/heritage/forbidden-city-3.jpg"
+        ],
+        "imageSource": "百度百科",
+        "imageSourcePage": "https://baike.baidu.com/item/故宫",
+        "imageCredit": "百度百科 · 词条配图"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          116.0169,
+          40.3594
+        ]
+      },
+      "properties": {
+        "id": "great-wall",
+        "name": "长城（八达岭段）",
+        "category": "building",
+        "city": "北京/河北",
+        "period": "春秋-明",
+        "description": "中国古代军事防御工程的代表，八达岭段为明长城经典段落，1987 年随长城列入世界文化遗产。",
+        "image": "assets/heritage/great-wall.jpg",
+        "source": "UNESCO 世界遗产中心",
+        "sourceUrl": "https://baike.baidu.com/item/长城",
+        "gallery": [
+          "assets/heritage/great-wall-2.jpg",
+          "assets/heritage/great-wall-3.jpg",
+          "assets/heritage/great-wall-4.jpg"
+        ],
+        "imageSource": "百度百科",
+        "imageSourcePage": "https://baike.baidu.com/item/长城",
+        "imageCredit": "百度百科 · 词条配图"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          109.2794,
+          34.3853
+        ]
+      },
+      "properties": {
+        "id": "terracotta",
+        "name": "秦始皇陵及兵马俑",
+        "category": "ruins",
+        "city": "西安（临潼）",
+        "period": "秦（公元前 221 年前后）",
+        "description": "秦始皇陵的陪葬坑，被誉为“世界第八大奇迹”，1987 年列入世界文化遗产。",
+        "image": "assets/heritage/terracotta.jpg",
+        "source": "UNESCO 世界遗产中心",
+        "sourceUrl": "https://baike.baidu.com/item/兵马俑",
+        "gallery": [
+          "assets/heritage/terracotta-2.jpg",
+          "assets/heritage/terracotta-3.jpg",
+          "assets/heritage/terracotta-4.jpg"
+        ],
+        "imageSource": "百度百科",
+        "imageSourcePage": "https://baike.baidu.com/item/兵马俑",
+        "imageCredit": "百度百科 · 词条配图"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          94.8094,
+          40.0385
+        ]
+      },
+      "properties": {
+        "id": "mogao",
+        "name": "莫高窟",
+        "category": "ruins",
+        "city": "敦煌",
+        "period": "前秦-元",
+        "description": "丝绸之路上的佛教石窟艺术宝库，现存洞窟 700 余个，1987 年列入世界文化遗产。",
+        "image": "assets/heritage/mogao.jpg",
+        "source": "UNESCO 世界遗产中心",
+        "sourceUrl": "https://baike.baidu.com/item/莫高窟",
+        "gallery": [],
+        "imageSource": "百度百科",
+        "imageSourcePage": "https://baike.baidu.com/item/莫高窟",
+        "imageCredit": "百度百科 · 词条配图"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          100.233,
+          26.8721
+        ]
+      },
+      "properties": {
+        "id": "lijiang",
+        "name": "丽江古城",
+        "category": "district",
+        "city": "丽江",
+        "period": "宋-清",
+        "description": "纳西族聚居的高原古城，以水系与民居著称，1997 年列入世界文化遗产。",
+        "image": "assets/heritage/lijiang.jpg",
+        "source": "UNESCO 世界遗产中心",
+        "sourceUrl": "https://baike.baidu.com/item/丽江古城",
+        "gallery": [
+          "assets/heritage/lijiang-4.jpg"
+        ],
+        "imageSource": "百度百科",
+        "imageSourcePage": "https://baike.baidu.com/item/丽江古城",
+        "imageCredit": "百度百科 · 词条配图"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          112.181,
+          37.2015
+        ]
+      },
+      "properties": {
+        "id": "pingyao",
+        "name": "平遥古城",
+        "category": "district",
+        "city": "平遥",
+        "period": "明-清",
+        "description": "保存完整的明清县城格局，城墙、票号、民居体系完备，1997 年列入世界文化遗产。",
+        "image": "assets/heritage/pingyao.jpg",
+        "source": "UNESCO 世界遗产中心",
+        "sourceUrl": "https://baike.baidu.com/item/平遥古城",
+        "gallery": [
+          "assets/heritage/pingyao-2.jpg",
+          "assets/heritage/pingyao-3.jpg",
+          "assets/heritage/pingyao-4.jpg"
+        ],
+        "imageSource": "百度百科",
+        "imageSourcePage": "https://baike.baidu.com/item/平遥古城",
+        "imageCredit": "百度百科 · 词条配图"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          118.0667,
+          24.447
+        ]
+      },
+      "properties": {
+        "id": "gulangyu",
+        "name": "鼓浪屿",
+        "category": "port",
+        "city": "厦门",
+        "period": "明清至近代（1903年公共租界）",
+        "description": "世界文化遗产，近代国际社区典范。闽南传统文化与多元外来文化融合形成的“历史国际社区”，万国建筑与音乐之岛。",
+        "image": "assets/heritage/gulangyu.jpg",
+        "source": "UNESCO 世界遗产中心",
+        "sourceUrl": "https://baike.baidu.com/item/鼓浪屿",
+        "gallery": [
+          "assets/heritage/gulangyu-2.jpg",
+          "assets/heritage/gulangyu-3.jpg"
+        ],
+        "imageSource": "百度百科",
+        "imageSourcePage": "https://baike.baidu.com/item/鼓浪屿",
+        "imageCredit": "百度百科 · 词条配图"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.49,
+          31.246
+        ]
+      },
+      "properties": {
+        "id": "bund",
+        "name": "外滩",
+        "category": "trade",
+        "city": "上海",
+        "period": "近代（1843年开埠后）",
+        "description": "近代通商巨埠核心，汇聚古典主义、哥特复兴、装饰艺术等风格万国建筑博览群，中国近代金融与国际商贸空间典型样本。",
+        "image": "assets/heritage/bund.jpg",
+        "source": "上海市文化和旅游局",
+        "sourceUrl": "https://baike.baidu.com/item/外滩",
+        "gallery": [
+          "assets/heritage/bund-2.jpg",
+          "assets/heritage/bund-4.jpg"
+        ],
+        "imageSource": "百度百科",
+        "imageSourcePage": "https://baike.baidu.com/item/外滩",
+        "imageCredit": "百度百科 · 词条配图"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          113.244,
+          23.114
+        ]
+      },
+      "properties": {
+        "id": "shisanxing",
+        "name": "广州十三行",
+        "category": "trade",
+        "city": "广州",
+        "period": "清代（1757—1842年鼎盛）",
+        "description": "清代乾隆二十二年至道光二十二年“一口通商”时期对外贸易特区，十三行商馆云集，潘、伍等行商家族主导近百年全球银丝商贸网络。",
+        "image": "assets/heritage/shisanxing.jpg",
+        "source": "广州市地方志 / 荔湾区政府",
+        "sourceUrl": "https://baike.baidu.com/item/广州十三行",
+        "gallery": [
+          "assets/heritage/shisanxing-2.jpg",
+          "assets/heritage/shisanxing-4.jpg"
+        ],
+        "imageSource": "百度百科",
+        "imageSourcePage": "https://baike.baidu.com/item/广州十三行",
+        "imageCredit": "百度百科 · 词条配图"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          113.9224,
+          22.5367
+        ]
+      },
+      "properties": {
+        "id": "nantou",
+        "name": "南头古城",
+        "category": "district",
+        "city": "深圳",
+        "period": "晋-明清（始建于331年）",
+        "description": "深圳乃至粤港澳地区的历史根脉，自东晋咸和六年（331年）起为东官郡及宝安县治所，见证近1700年县治演变，全国重点文保单位。",
+        "image": "assets/heritage/nantou.jpg",
+        "source": "深圳市文物局",
+        "sourceUrl": "https://baike.baidu.com/item/南头古城",
+        "gallery": [
+          "assets/heritage/nantou-2.jpg",
+          "assets/heritage/nantou-3.jpg",
+          "assets/heritage/nantou-4.jpg"
+        ],
+        "imageSource": "百度百科",
+        "imageSourcePage": "https://baike.baidu.com/item/南头古城",
+        "imageCredit": "百度百科 · 词条配图"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          113.902,
+          22.471
+        ]
+      },
+      "properties": {
+        "id": "shekou",
+        "name": "蛇口工业区",
+        "category": "industry",
+        "city": "深圳",
+        "period": "当代（1979年动工）",
+        "description": "招商局蛇口工业区，打响改革开放“开山第一炮”。袁庚提出“时间就是金钱，效率就是生命”，中国首批国家级工业遗产。",
+        "image": "assets/heritage/shekou.jpg",
+        "source": "招商局集团史料",
+        "sourceUrl": "https://baike.baidu.com/item/蛇口工业区",
+        "gallery": [
+          "assets/heritage/shekou-2.jpg"
+        ],
+        "imageSource": "百度百科",
+        "imageSourcePage": "https://baike.baidu.com/item/蛇口工业区",
+        "imageCredit": "百度百科 · 词条配图"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          113.243,
+          23.107
+        ]
+      },
+      "properties": {
+        "id": "shamian",
+        "name": "沙面历史街区",
+        "category": "district",
+        "city": "广州",
+        "period": "近代（1859年辟为租界）",
+        "description": "珠江白鹅潭畔的人工椭圆小岛，近代广州通商口岸的欧式建筑历史街区，保存有百余栋英法租界领事馆、洋行与银行古典建筑。",
+        "image": "assets/heritage/shamian.jpg",
+        "source": "广州市荔湾区政府",
+        "sourceUrl": "https://baike.baidu.com/item/沙面",
+        "gallery": [
+          "assets/heritage/shamian-2.jpg",
+          "assets/heritage/shamian-3.jpg",
+          "assets/heritage/shamian-4.jpg"
+        ],
+        "imageSource": "百度百科",
+        "imageSourcePage": "https://baike.baidu.com/item/沙面",
+        "imageCredit": "百度百科 · 词条配图"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          108.964,
+          34.218
+        ]
+      },
+      "properties": {
+        "id": "dayan",
+        "name": "大雁塔",
+        "category": "building",
+        "city": "西安",
+        "period": "唐（652 年）",
+        "description": "唐代为保存玄奘取回的经卷而建，西安地标与丝绸之路遗产关联点。",
+        "image": "assets/heritage/dayan.jpg",
+        "source": "UNESCO 世界遗产（丝绸之路）",
+        "sourceUrl": "https://baike.baidu.com/item/大雁塔",
+        "gallery": [
+          "assets/heritage/dayan-2.jpg",
+          "assets/heritage/dayan-3.jpg",
+          "assets/heritage/dayan-4.jpg"
+        ],
+        "imageSource": "百度百科",
+        "imageSourcePage": "https://baike.baidu.com/item/大雁塔",
+        "imageCredit": "百度百科 · 词条配图"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.616,
+          31.322
+        ]
+      },
+      "properties": {
+        "id": "suzhou",
+        "name": "苏州古典园林",
+        "category": "building",
+        "city": "苏州",
+        "period": "宋-清",
+        "description": "以拙政园、留园为代表的江南私家园林，1997 年起列入世界文化遗产。",
+        "image": "assets/heritage/suzhou.jpg",
+        "source": "UNESCO 世界遗产中心",
+        "sourceUrl": "https://baike.baidu.com/item/苏州古典园林",
+        "gallery": [
+          "assets/heritage/suzhou-2.jpg",
+          "assets/heritage/suzhou-3.jpg"
+        ],
+        "imageSource": "百度百科",
+        "imageSourcePage": "https://baike.baidu.com/item/苏州古典园林",
+        "imageCredit": "百度百科 · 词条配图"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          119.949,
+          30.395
+        ]
+      },
+      "properties": {
+        "id": "liangzhu",
+        "name": "良渚古城遗址",
+        "category": "ruins",
+        "city": "杭州",
+        "period": "新石器（约公元前 3300 年）",
+        "description": "实证中华五千年文明史的早期都邑遗址，2019 年列入世界文化遗产。",
+        "image": "assets/heritage/liangzhu.jpg",
+        "source": "UNESCO 世界遗产中心",
+        "sourceUrl": "https://baike.baidu.com/item/良渚古城遗址",
+        "gallery": [
+          "assets/heritage/liangzhu-3.jpg",
+          "assets/heritage/liangzhu-4.jpg"
+        ],
+        "imageSource": "百度百科",
+        "imageSourcePage": "https://baike.baidu.com/item/良渚古城遗址",
+        "imageCredit": "百度百科 · 词条配图"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          118.589,
+          24.887
+        ]
+      },
+      "properties": {
+        "id": "quanzhou",
+        "name": "泉州：宋元中国的世界海洋商贸中心",
+        "category": "port",
+        "city": "泉州",
+        "period": "宋元",
+        "description": "系列遗产点组成的海丝枢纽，2021 年列入世界文化遗产，见证古代海洋贸易网络。",
+        "image": "assets/heritage/quanzhou.jpg",
+        "source": "UNESCO 世界遗产中心",
+        "sourceUrl": "https://baike.baidu.com/item/泉州",
+        "gallery": [
+          "assets/heritage/quanzhou-3.jpg"
+        ],
+        "imageSource": "百度百科",
+        "imageSourcePage": "https://baike.baidu.com/item/泉州",
+        "imageCredit": "百度百科 · 词条配图"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          103.618,
+          31.004
+        ]
+      },
+      "properties": {
+        "id": "dujiangyan",
+        "name": "都江堰",
+        "category": "building",
+        "city": "都江堰",
+        "period": "战国（公元前 256 年）",
+        "description": "李冰主持修建的古代大型水利工程，至今仍在使用的生态水利典范，2000 年列入世界文化遗产。",
+        "image": "assets/heritage/dujiangyan.jpg",
+        "source": "UNESCO 世界遗产中心",
+        "sourceUrl": "https://baike.baidu.com/item/都江堰",
+        "gallery": [
+          "assets/heritage/dujiangyan-3.jpg",
+          "assets/heritage/dujiangyan-4.jpg"
+        ],
+        "imageSource": "百度百科",
+        "imageSourcePage": "https://baike.baidu.com/item/都江堰",
+        "imageCredit": "百度百科 · 词条配图"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          91.117,
+          29.656
+        ]
+      },
+      "properties": {
+        "id": "potala",
+        "name": "布达拉宫",
+        "category": "building",
+        "city": "拉萨",
+        "period": "唐-清",
+        "description": "西藏政教合一的宫堡式建筑群，1994 年列入世界文化遗产（大昭寺、罗布林卡扩展项目）。",
+        "image": "assets/heritage/potala.jpg",
+        "source": "UNESCO 世界遗产中心",
+        "sourceUrl": "https://baike.baidu.com/item/布达拉宫",
+        "gallery": [
+          "assets/heritage/potala-2.jpg"
+        ],
+        "imageSource": "百度百科",
+        "imageSourcePage": "https://baike.baidu.com/item/布达拉宫",
+        "imageCredit": "百度百科 · 词条配图"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          112.476,
+          34.562
+        ]
+      },
+      "properties": {
+        "id": "longmen",
+        "name": "龙门石窟",
+        "category": "ruins",
+        "city": "洛阳",
+        "period": "北魏-唐",
+        "description": "伊河两岸的佛教石窟造像群，2000 年与大同云冈石窟等作为皇家石窟列入世界文化遗产。",
+        "image": "assets/heritage/longmen.jpg",
+        "source": "UNESCO 世界遗产中心",
+        "sourceUrl": "https://baike.baidu.com/item/龙门石窟",
+        "gallery": [],
+        "imageSource": "百度百科",
+        "imageSourcePage": "https://baike.baidu.com/item/龙门石窟",
+        "imageCredit": "百度百科 · 词条配图"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          112.578,
+          22.293
+        ]
+      },
+      "properties": {
+        "id": "kaiping",
+        "name": "开平碉楼与村落",
+        "category": "building",
+        "city": "开平",
+        "period": "近代（19-20 世纪）",
+        "description": "华侨融合中西风格的防卫性居楼与村落，2007 年列入世界文化遗产。",
+        "image": "assets/heritage/kaiping.jpg",
+        "source": "UNESCO 世界遗产中心",
+        "sourceUrl": "https://baike.baidu.com/item/开平碉楼",
+        "gallery": [
+          "assets/heritage/kaiping-2.jpg",
+          "assets/heritage/kaiping-3.jpg",
+          "assets/heritage/kaiping-4.png"
+        ],
+        "imageSource": "百度百科",
+        "imageSourcePage": "https://baike.baidu.com/item/开平碉楼",
+        "imageCredit": "百度百科 · 词条配图"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          114.5089,
+          22.597
+        ]
+      },
+      "properties": {
+        "id": "dapeng",
+        "name": "大鹏所城",
+        "category": "building",
+        "city": "深圳",
+        "period": "明-清（始建于1394年）",
+        "description": "明洪武二十七年设大鹏守御千户所，明清两代中国南疆海防军事要塞，全国重点文物保护单位。有“沿海所城，大鹏为最”之誉，深圳“鹏城”别名发祥地。",
+        "image": "assets/heritage/dapeng.jpg",
+        "source": "全国重点文物保护单位 / 国家历史文化名村",
+        "sourceUrl": "https://baike.baidu.com/item/大鹏所城",
+        "gallery": [
+          "assets/heritage/dapeng.jpg"
+        ],
+        "imageCredit": "百度百科 · 词条配图"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          114.2261,
+          22.5465
+        ]
+      },
+      "properties": {
+        "id": "zhongyingjie",
+        "name": "中英街",
+        "category": "district",
+        "city": "深圳",
+        "period": "近代至当代（1899年勘界形成）",
+        "description": "沙头角长约250米的历史名街，街心以八块界碑为界，一街两侧实行不同法律制度。见证百年历史沧桑与改革开放初期免税商贸繁荣。",
+        "image": "assets/heritage/zhongyingjie.jpg",
+        "source": "广东省文物保护单位 / 中国历史文化名街",
+        "sourceUrl": "https://baike.baidu.com/item/中英街",
+        "gallery": [
+          "assets/heritage/zhongyingjie.jpg"
+        ],
+        "imageCredit": "百度百科 · 词条配图"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          113.8872,
+          22.4764
+        ]
+      },
+      "properties": {
+        "id": "chiwan",
+        "name": "赤湾左炮台与宋少帝陵",
+        "category": "ruins",
+        "city": "深圳",
+        "period": "宋-清（康熙五十六年设炮台）",
+        "description": "珠江口东岸海防锁钥，曾与右炮台形成钳形交叉火力防御零丁洋；毗邻南宋崖山海战赵昺皇帝陵寝，凝结宋元鼎革历史终章。",
+        "image": "assets/heritage/chiwan.jpg",
+        "source": "广东省文物保护单位",
+        "sourceUrl": "https://baike.baidu.com/item/赤湾左炮台",
+        "gallery": [
+          "assets/heritage/chiwan.jpg"
+        ],
+        "imageCredit": "百度百科 · 词条配图"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.4707,
+          31.222
+        ]
+      },
+      "properties": {
+        "id": "yida",
+        "name": "中共一大会址",
+        "category": "building",
+        "city": "上海",
+        "period": "近代（1920年秋建成）",
+        "description": "兴业路76号石库门建筑群，1921年7月中国共产党第一次全国代表大会在此举行。海派石库门里弄民居与红色革命精神原点的空间坐标。",
+        "image": "assets/heritage/yida.jpg",
+        "source": "全国重点文物保护单位",
+        "sourceUrl": "https://baike.baidu.com/item/中共一大会址",
+        "gallery": [
+          "assets/heritage/yida.jpg"
+        ],
+        "imageCredit": "百度百科 · 词条配图"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.4875,
+          31.2292
+        ]
+      },
+      "properties": {
+        "id": "yuyuan",
+        "name": "豫园",
+        "category": "building",
+        "city": "上海",
+        "period": "明代（嘉靖三十八年1559年始建）",
+        "description": "明代四川布政使潘允端创设的江南古典私家园林，老城厢空间核心，占地30余亩，秀石名木、亭台楼阁叠落，全国重点文物保护单位。",
+        "image": "assets/heritage/yuyuan.jpg",
+        "source": "全国重点文物保护单位",
+        "sourceUrl": "https://baike.baidu.com/item/豫园",
+        "gallery": [
+          "assets/heritage/yuyuan.jpg"
+        ],
+        "imageCredit": "百度百科 · 词条配图"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.4845,
+          31.1975
+        ]
+      },
+      "properties": {
+        "id": "jiangnan",
+        "name": "江南机器制造总局旧址",
+        "category": "industry",
+        "city": "上海",
+        "period": "近代（同治四年1865年创办）",
+        "description": "洋务运动在黄浦江畔创设的近代军工与造船基地，中国近代工业开办最早、规模最大的民族装备企业，被誉为中国近代科技与工业的发祥地。",
+        "image": "assets/heritage/jiangnan.jpg",
+        "source": "全国重点文物保护单位 / 国家工业遗产",
+        "sourceUrl": "https://baike.baidu.com/item/江南制造局",
+        "gallery": [
+          "assets/heritage/jiangnan.jpg"
+        ],
+        "imageCredit": "百度百科 · 词条配图"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.4483,
+          31.1738
+        ]
+      },
+      "properties": {
+        "id": "longhua",
+        "name": "龙华塔与历史风貌区",
+        "category": "building",
+        "city": "上海",
+        "period": "北宋（相传三国赤乌十年始建）",
+        "description": "上海市区现存唯一宋代楼阁式砖木佛塔，八角七级，高40.6米，濒临龙华港，是千年水陆交通要津与近现代革命烈士纪念圣地。",
+        "image": "assets/heritage/longhua.jpg",
+        "source": "全国重点文物保护单位",
+        "sourceUrl": "https://baike.baidu.com/item/上海龙华塔",
+        "gallery": [
+          "assets/heritage/longhua.jpg"
+        ],
+        "imageCredit": "百度百科 · 词条配图"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          113.2405,
+          23.1298
+        ]
+      },
+      "properties": {
+        "id": "chenjiaci",
+        "name": "陈家祠（陈氏书院）",
+        "category": "building",
+        "city": "广州",
+        "period": "清代（光绪十四年至十九年落成）",
+        "description": "广东七十二县陈姓合建的宗族祠堂与书院，岭南传统建筑艺术集大成者，集木雕、砖雕、石雕、陶塑、灰塑与铜铁铸技艺于一体。",
+        "image": "assets/heritage/chenjiaci.jpg",
+        "source": "全国重点文物保护单位",
+        "sourceUrl": "https://baike.baidu.com/item/陈家祠",
+        "gallery": [
+          "assets/heritage/chenjiaci.jpg"
+        ],
+        "imageCredit": "百度百科 · 词条配图"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          113.2648,
+          23.129
+        ]
+      },
+      "properties": {
+        "id": "nanyue",
+        "name": "南越国宫署遗址",
+        "category": "ruins",
+        "city": "广州",
+        "period": "西汉至明清（距今2000余年）",
+        "description": "全国重点文物保护单位，包含西汉南越国王宫御苑石池曲渠、五代南汉宫殿及历代官署叠压层，实证广州2200余年城市中心未曾迁徙。",
+        "image": "assets/heritage/nanyue.jpg",
+        "source": "全国重点文物保护单位",
+        "sourceUrl": "https://baike.baidu.com/item/南越国宫署遗址",
+        "gallery": [
+          "assets/heritage/nanyue.jpg"
+        ],
+        "imageCredit": "百度百科 · 词条配图"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          113.3858,
+          23.0889
+        ]
+      },
+      "properties": {
+        "id": "huangpugang",
+        "name": "黄埔古港与粤海第一关",
+        "category": "port",
+        "city": "广州",
+        "period": "宋-清（清乾隆二十二年设外贸水闸）",
+        "description": "清代“一口通商”时期外国进港商船唯一指定停泊与查验海关，见证“哥德堡号”、“中国皇后号”等远洋商船往返，海上丝绸之路发祥圣地。",
+        "image": "assets/heritage/huangpugang.jpg",
+        "source": "广东省文物保护单位",
+        "sourceUrl": "https://baike.baidu.com/item/黄埔古港遗址",
+        "gallery": [
+          "assets/heritage/huangpugang.jpg"
+        ],
+        "imageCredit": "百度百科 · 词条配图"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          118.0988,
+          24.5714
+        ]
+      },
+      "properties": {
+        "id": "jimei",
+        "name": "集美学村",
+        "category": "building",
+        "city": "厦门",
+        "period": "民国至当代（1913年陈嘉庚始建）",
+        "description": "著名爱国华侨领袖陈嘉庚倾资创办的百年侨乡学府建筑群，“穿西装、戴斗笠”嘉庚建筑风格典范，融合闽南红砖与西洋古典券廊。",
+        "image": "assets/heritage/jimei.jpg",
+        "source": "全国重点文物保护单位",
+        "sourceUrl": "https://baike.baidu.com/item/集美学村",
+        "gallery": [
+          "assets/heritage/jimei.jpg"
+        ],
+        "imageCredit": "百度百科 · 词条配图"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          118.1016,
+          24.4316
+        ]
+      },
+      "properties": {
+        "id": "hulishan",
+        "name": "胡里山炮台",
+        "category": "building",
+        "city": "厦门",
+        "period": "清光绪二十年（1894年）",
+        "description": "洋务运动在闽海要冲构筑的花岗岩半地堑海防炮台，存有世界现存最大、保存最完好的十九世纪后膛海岸炮——克虏伯280毫米大炮。",
+        "image": "assets/heritage/hulishan.jpg",
+        "source": "全国重点文物保护单位",
+        "sourceUrl": "https://baike.baidu.com/item/胡里山炮台",
+        "gallery": [
+          "assets/heritage/hulishan.jpg"
+        ],
+        "imageCredit": "百度百科 · 词条配图"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          118.0916,
+          24.4431
+        ]
+      },
+      "properties": {
+        "id": "nanputuo",
+        "name": "南普陀寺",
+        "category": "building",
+        "city": "厦门",
+        "period": "唐末五代（清康熙二十三年重建）",
+        "description": "闽南千年佛教古刹，背依五老峰、面迎鹭江，毗邻厦门大学。歇山飞檐与闽南剪瓷雕造诣极高，为两岸及东南亚华人文化交流重地。",
+        "image": "assets/heritage/nanputuo.jpg",
+        "source": "全国重点佛教寺院 / 福建省文物保护单位",
+        "sourceUrl": "https://baike.baidu.com/item/南普陀寺",
+        "gallery": [
+          "assets/heritage/nanputuo.jpg"
+        ],
+        "imageCredit": "百度百科 · 词条配图"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          118.0847,
+          24.4378
+        ]
+      },
+      "properties": {
+        "id": "shapowei",
+        "name": "沙坡尾避风坞",
+        "category": "port",
+        "city": "厦门",
+        "period": "明清至当代（近现代渔港生活聚落）",
+        "description": "厦门港发祥地与近代海洋渔业避风水域，清代起即为闽南渔民商船聚集处。保留完整老船坞、弧形石阶与骑楼街巷，活态传承海洋文化记忆。",
+        "image": "assets/heritage/shapowei.jpg",
+        "source": "厦门市历史文化街区",
+        "sourceUrl": "https://baike.baidu.com/item/沙坡尾",
+        "gallery": [
+          "assets/heritage/shapowei.jpg"
+        ],
+        "imageCredit": "百度百科 · 词条配图"
+      }
+    }
+  ]
+}

@@ -1,0 +1,1035 @@
+{
+  "note": "图片来源为百度百科词条配图，版权归原作者/机构所有，此处仅用于课程作业非商业展示；引用前请遵循原图授权条款。",
+  "generatedAt": "2026-10-16T07:08:04.642Z",
+  "total": 34,
+  "images": [
+    {
+      "id": "forbidden-city",
+      "name": "故宫（紫禁城）",
+      "city": "北京",
+      "category": "building",
+      "main": "forbidden-city.jpg",
+      "gallery": [
+        "forbidden-city-2.jpg",
+        "forbidden-city-3.jpg",
+        "forbidden-city-4.jpg"
+      ],
+      "files": [
+        {
+          "file": "forbidden-city.jpg",
+          "bytes": 136029,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/3b87e950352ac65c103818ed07bea5119313b07e1c52",
+          "dims": "1024x810"
+        },
+        {
+          "file": "forbidden-city-2.jpg",
+          "bytes": 68842,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/58ee3d6d55fbb2fbbf4c4031424a20a44623dcaa",
+          "dims": "690x687"
+        },
+        {
+          "file": "forbidden-city-3.jpg",
+          "bytes": 33965,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/5366d0160924ab1828c4c05439fae6cd7a890b86",
+          "dims": "370x431"
+        },
+        {
+          "file": "forbidden-city-4.jpg",
+          "bytes": 136029,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/9d82d158ccbf6c81f07634cbb13eb13533fa404b",
+          "dims": "1024x810"
+        }
+      ],
+      "dims": "639x902",
+      "bytes": 227090,
+      "source": "百度百科",
+      "sourcePage": "https://baike.baidu.com/item/故宫",
+      "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/3b87e950352ac65c103818ed07bea5119313b07e1c52"
+    },
+    {
+      "id": "great-wall",
+      "name": "长城（八达岭段）",
+      "city": "北京/河北",
+      "category": "building",
+      "main": "great-wall.jpg",
+      "gallery": [
+        "great-wall-2.jpg",
+        "great-wall-3.jpg",
+        "great-wall-4.jpg"
+      ],
+      "files": [
+        {
+          "file": "great-wall.jpg",
+          "bytes": 155321,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/0bd162d9f2d3572cb300d5908313632763d0c398",
+          "dims": "1000x750"
+        },
+        {
+          "file": "great-wall-2.jpg",
+          "bytes": 194574,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/smart/4034970a304e251f95ca63a74bd0de177f3e6709f56f-bkimg-process,v_1,rw_16,rh_9,maxl_640,pad_1",
+          "dims": "1920x1080"
+        },
+        {
+          "file": "great-wall-3.jpg",
+          "bytes": 39408,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/smart/2f738bd4b31c8701a18b504d0422892f070828385150-bkimg-process,v_1,rw_16,rh_9,maxl_640,pad_1",
+          "dims": "658x370"
+        },
+        {
+          "file": "great-wall-4.jpg",
+          "bytes": 197844,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/838ba61ea8d3fd1fbcae275b364e251f95ca5f28",
+          "dims": "1280x854"
+        }
+      ],
+      "dims": "1000x750",
+      "bytes": 155321,
+      "source": "百度百科",
+      "sourcePage": "https://baike.baidu.com/item/长城",
+      "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/0bd162d9f2d3572cb300d5908313632763d0c398"
+    },
+    {
+      "id": "terracotta",
+      "name": "秦始皇陵及兵马俑",
+      "city": "西安（临潼）",
+      "category": "ruins",
+      "main": "terracotta.jpg",
+      "gallery": [
+        "terracotta-2.jpg",
+        "terracotta-3.jpg",
+        "terracotta-4.jpg"
+      ],
+      "files": [
+        {
+          "file": "terracotta.jpg",
+          "bytes": 26637,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/4afbfbedab64034f9d52fd62a9c379310a551d32",
+          "dims": "450x450"
+        },
+        {
+          "file": "terracotta-2.jpg",
+          "bytes": 86495,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/f703738da9773912f86401b0f4198618377ae2a5?x-bce-process=image/resize,m_lfit,w_1920,h_1920,limit_1/format,f_jpg/quality,Q_90",
+          "dims": "1200x900"
+        },
+        {
+          "file": "terracotta-3.jpg",
+          "bytes": 28802,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/908fa0ec08fa513d06b152ba3b6d55fbb2fbd9be",
+          "dims": "450x450"
+        },
+        {
+          "file": "terracotta-4.jpg",
+          "bytes": 26671,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/a5c27d1ed21b0ef4df1aa73adbc451da80cb3ee7",
+          "dims": "450x450"
+        }
+      ],
+      "dims": "450x450",
+      "bytes": 26637,
+      "source": "百度百科",
+      "sourcePage": "https://baike.baidu.com/item/兵马俑",
+      "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/4afbfbedab64034f9d52fd62a9c379310a551d32"
+    },
+    {
+      "id": "mogao",
+      "name": "莫高窟",
+      "city": "敦煌",
+      "category": "ruins",
+      "main": "mogao.jpg",
+      "gallery": [
+        "mogao-2.jpg",
+        "mogao-3.jpg",
+        "mogao-4.jpg"
+      ],
+      "files": [
+        {
+          "file": "mogao.jpg",
+          "bytes": 398750,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/d0c8a786c9177f3e67098f782d922cc79f3df8dcf80b?x-bce-process=image/resize,m_lfit,w_1920,h_1920,limit_1/format,f_jpg/quality,Q_90",
+          "dims": "1919x1050"
+        },
+        {
+          "file": "mogao-2.jpg",
+          "bytes": 226842,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/smart/71cf3bc79f3df8dcd100ce24f846658b4710b9128275-bkimg-process,v_1,rw_16,rh_9,maxl_640,pad_1",
+          "dims": "1920x1080"
+        },
+        {
+          "file": "mogao-3.jpg",
+          "bytes": 367822,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/smart/aa18972bd40735fae6cd8c3c4c0918b30f2443a7a2a7-bkimg-process,v_1,rw_16,rh_9,maxl_640,pad_1",
+          "dims": "1920x1078"
+        },
+        {
+          "file": "mogao-4.jpg",
+          "bytes": 413973,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/smart/32fa828ba61ea8d3fd1f86814552274e251f94caf2a7-bkimg-process,v_1,rw_16,rh_9,maxl_640,pad_1",
+          "dims": "1920x1078"
+        }
+      ],
+      "dims": "1200x1800",
+      "bytes": 664828,
+      "source": "百度百科",
+      "sourcePage": "https://baike.baidu.com/item/莫高窟",
+      "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/b21c8701a18b87d6277f679d04553f381f30e82457b9"
+    },
+    {
+      "id": "lijiang",
+      "name": "丽江古城",
+      "city": "丽江",
+      "category": "district",
+      "main": "lijiang.jpg",
+      "gallery": [
+        "lijiang-2.jpg",
+        "lijiang-3.jpg",
+        "lijiang-4.jpg"
+      ],
+      "files": [
+        {
+          "file": "lijiang.jpg",
+          "bytes": 166181,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/9c16fdfaaf51f3deb48f3db453b6e71f3a292cf5d390?x-bce-process=image/resize,m_lfit,w_1920,h_1920,limit_1/format,f_jpg/quality,Q_90",
+          "dims": "1136x757"
+        },
+        {
+          "file": "lijiang-2.jpg",
+          "bytes": 448806,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/a8ec8a13632762d0f703cd8617b41ffa513d269768cb",
+          "dims": "1181x914"
+        },
+        {
+          "file": "lijiang-3.jpg",
+          "bytes": 54437,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/810a19d8bc3eb13533fa50756546bfd3fd1f4034eefe",
+          "dims": "640x483"
+        },
+        {
+          "file": "lijiang-4.jpg",
+          "bytes": 881768,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/f31fbe096b63f6246b607b35301cfcf81a4c510f05f6",
+          "dims": "1920x1440"
+        }
+      ],
+      "dims": "1080x1012",
+      "bytes": 185806,
+      "source": "百度百科",
+      "sourcePage": "https://baike.baidu.com/item/丽江古城",
+      "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/d52a2834349b033b5bb54cd6a29621d3d539b600173c"
+    },
+    {
+      "id": "pingyao",
+      "name": "平遥古城",
+      "city": "平遥",
+      "category": "district",
+      "main": "pingyao.jpg",
+      "gallery": [
+        "pingyao-2.jpg",
+        "pingyao-3.jpg",
+        "pingyao-4.jpg"
+      ],
+      "files": [
+        {
+          "file": "pingyao.jpg",
+          "bytes": 356047,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/94cad1c8a786c9177f3eca9c3c6667cf3bc79f3df958",
+          "dims": "893x670"
+        },
+        {
+          "file": "pingyao-2.jpg",
+          "bytes": 484462,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/smart/bf096b63f6246b600c330d9b4ea40d4c510fd8f90495-bkimg-process,v_1,rw_16,rh_9,maxl_640,pad_1",
+          "dims": "1920x1080"
+        },
+        {
+          "file": "pingyao-3.jpg",
+          "bytes": 211361,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/503d269759ee3d6d55fbb99c534d7a224f4a20a4706b",
+          "dims": "1080x648"
+        },
+        {
+          "file": "pingyao-4.jpg",
+          "bytes": 64144,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/a08b87d6277f9e2f3419fd5b1030e924b899f3b1",
+          "dims": "640x384"
+        }
+      ],
+      "dims": "893x670",
+      "bytes": 356047,
+      "source": "百度百科",
+      "sourcePage": "https://baike.baidu.com/item/平遥古城",
+      "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/94cad1c8a786c9177f3eca9c3c6667cf3bc79f3df958"
+    },
+    {
+      "id": "gulangyu",
+      "name": "鼓浪屿",
+      "city": "厦门",
+      "category": "district",
+      "main": "gulangyu.jpg",
+      "gallery": [
+        "gulangyu-2.jpg",
+        "gulangyu-3.jpg",
+        "gulangyu-4.png"
+      ],
+      "files": [
+        {
+          "file": "gulangyu.jpg",
+          "bytes": 422624,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/c2fdfc039245d688daf63d37a2c27d1ed31b24a8",
+          "dims": "1600x1200"
+        },
+        {
+          "file": "gulangyu-2.jpg",
+          "bytes": 373563,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/2cf5e0fe9925bc31307a19b85fdf8db1cb1370ee",
+          "dims": "1920x1440"
+        },
+        {
+          "file": "gulangyu-3.jpg",
+          "bytes": 377759,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/cefc1e178a82b9014a90263269d4be773912b31b4122",
+          "dims": "1440x1920"
+        },
+        {
+          "file": "gulangyu-4.png",
+          "bytes": 736427,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/77094b36acaf2edda3ccdd33304816e93901203f35ea",
+          "dims": "865x635"
+        }
+      ],
+      "dims": "1600x1200",
+      "bytes": 422624,
+      "source": "百度百科",
+      "sourcePage": "https://baike.baidu.com/item/鼓浪屿",
+      "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/c2fdfc039245d688daf63d37a2c27d1ed31b24a8"
+    },
+    {
+      "id": "bund",
+      "name": "外滩",
+      "city": "上海",
+      "category": "district",
+      "main": "bund.jpg",
+      "gallery": [
+        "bund-2.jpg",
+        "bund-3.png",
+        "bund-4.jpg"
+      ],
+      "files": [
+        {
+          "file": "bund.jpg",
+          "bytes": 292295,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/29381f30e924b8998e90a69065061d950b7bf6ee",
+          "dims": "1200x886"
+        },
+        {
+          "file": "bund-2.jpg",
+          "bytes": 555478,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/55e736d12f2eb9389b50b10bb93f9235e5dde611c18e",
+          "dims": "1920x1372"
+        },
+        {
+          "file": "bund-3.png",
+          "bytes": 991350,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/b90e7bec54e736d12f2e45fff70d58c2d5628435c38c",
+          "dims": "800x666"
+        },
+        {
+          "file": "bund-4.jpg",
+          "bytes": 643440,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/3801213fb80e7bec54e7481bc777ae389b504ec23d8d",
+          "dims": "1920x1280"
+        }
+      ],
+      "dims": "1200x886",
+      "bytes": 292295,
+      "source": "百度百科",
+      "sourcePage": "https://baike.baidu.com/item/外滩",
+      "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/29381f30e924b8998e90a69065061d950b7bf6ee"
+    },
+    {
+      "id": "shisanxing",
+      "name": "广州十三行",
+      "city": "广州",
+      "category": "trade",
+      "main": "shisanxing.jpg",
+      "gallery": [
+        "shisanxing-2.jpg",
+        "shisanxing-3.jpg",
+        "shisanxing-4.jpg"
+      ],
+      "files": [
+        {
+          "file": "shisanxing.jpg",
+          "bytes": 565759,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/3b292df5e0fe9925bc31c4b9dcf249df8db1ca13db9d",
+          "dims": "1920x1437"
+        },
+        {
+          "file": "shisanxing-2.jpg",
+          "bytes": 82896,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/83025aafa40f4bfbe79962490e4f78f0f7361865",
+          "dims": "616x495"
+        },
+        {
+          "file": "shisanxing-3.jpg",
+          "bytes": 230310,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/smart/c9fcc3cec3fdfc0392458a6283639094a4c27c1e88ef-bkimg-process,v_1,rw_16,rh_9,maxl_640,pad_1",
+          "dims": "981x588"
+        },
+        {
+          "file": "shisanxing-4.jpg",
+          "bytes": 230310,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/242dd42a2834349b033bf2555ba102ce36d3d4391085",
+          "dims": "981x588"
+        }
+      ],
+      "dims": "1920x1437",
+      "bytes": 565759,
+      "source": "百度百科",
+      "sourcePage": "https://baike.baidu.com/item/广州十三行",
+      "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/3b292df5e0fe9925bc31c4b9dcf249df8db1ca13db9d"
+    },
+    {
+      "id": "nantou",
+      "name": "南头古城",
+      "city": "深圳",
+      "category": "district",
+      "main": "nantou.jpg",
+      "gallery": [
+        "nantou-2.jpg",
+        "nantou-3.jpg",
+        "nantou-4.jpg"
+      ],
+      "files": [
+        {
+          "file": "nantou.jpg",
+          "bytes": 403102,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/55e736d12f2eb9389b50da91003b9235e5dde711c104",
+          "dims": "1920x1440"
+        },
+        {
+          "file": "nantou-2.jpg",
+          "bytes": 536672,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/c2fdfc039245d688528abef0abc27d1ed31b24dd",
+          "dims": "1920x1080"
+        },
+        {
+          "file": "nantou-3.jpg",
+          "bytes": 70734,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/cdbf6c81800a19d819db49513cfa828ba71e468e",
+          "dims": "690x460"
+        },
+        {
+          "file": "nantou-4.jpg",
+          "bytes": 156801,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/a8ec8a13632762d0d2aa69ebafec08fa503dc6ca",
+          "dims": "690x460"
+        }
+      ],
+      "dims": "1100x1550",
+      "bytes": 669336,
+      "source": "百度百科",
+      "sourcePage": "https://baike.baidu.com/item/南头古城",
+      "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/0dd7912397dda144899e60e6bdb7d0a20df486ca"
+    },
+    {
+      "id": "shekou",
+      "name": "蛇口工业区",
+      "city": "深圳",
+      "category": "industry",
+      "main": "shekou.jpg",
+      "gallery": [
+        "shekou-2.jpg"
+      ],
+      "files": [
+        {
+          "file": "shekou.jpg",
+          "bytes": 271941,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/a6efce1b9d16fdfaaf51117820d29b5494eef11fcdad",
+          "dims": "1920x882"
+        },
+        {
+          "file": "shekou-2.jpg",
+          "bytes": 197735,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/960a304e251f95ca4d35b425c0177f3e66095264",
+          "dims": "800x532"
+        }
+      ],
+      "dims": "1920x1080",
+      "bytes": 278083,
+      "source": "百度百科",
+      "sourcePage": "https://baike.baidu.com/item/蛇口工业区",
+      "remoteUrl": "https://bkimg.cdn.bcebos.com/smart/2fdda3cc7cd98d1001e9deab5b63af0e7bec55e73aae-bkimg-process,v_1,rw_16,rh_9,maxl_640,pad_1"
+    },
+    {
+      "id": "shamian",
+      "name": "沙面历史街区",
+      "city": "广州",
+      "category": "district",
+      "main": "shamian.jpg",
+      "gallery": [
+        "shamian-2.jpg",
+        "shamian-3.jpg",
+        "shamian-4.jpg"
+      ],
+      "files": [
+        {
+          "file": "shamian.jpg",
+          "bytes": 663977,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/1ad5ad6eddc451da81cbf09040a74566d0160924940f?x-bce-process=image/resize,m_lfit,w_1920,h_1920,limit_1/format,f_jpg/quality,Q_90",
+          "dims": "1920x1280"
+        },
+        {
+          "file": "shamian-2.jpg",
+          "bytes": 56890,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/3c6d55fbb2fb43166d22595328fd512309f7905275db",
+          "dims": "500x333"
+        },
+        {
+          "file": "shamian-3.jpg",
+          "bytes": 202579,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/0d338744ebf81a4cf0f47d59d02a6059242da658?x-bce-process=image/resize,m_lfit,w_1920,h_1920,limit_1/format,f_jpg/quality,Q_90",
+          "dims": "1024x768"
+        },
+        {
+          "file": "shamian-4.jpg",
+          "bytes": 230173,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/f3d3572c11dfa9ec7f5e461c6dd0f703918fc14d?x-bce-process=image/resize,m_lfit,w_1920,h_1920,limit_1/format,f_jpg/quality,Q_90",
+          "dims": "1280x960"
+        }
+      ],
+      "dims": "660x370",
+      "bytes": 113583,
+      "source": "百度百科",
+      "sourcePage": "https://baike.baidu.com/item/沙面",
+      "remoteUrl": "https://bkimg.cdn.bcebos.com/smart/4d086e061d950a7b0208aeb5398b75d9f2d3572c6335-bkimg-process,v_1,rw_16,rh_9,maxl_640,pad_1"
+    },
+    {
+      "id": "dayan",
+      "name": "大雁塔",
+      "city": "西安",
+      "category": "building",
+      "main": "dayan.jpg",
+      "gallery": [
+        "dayan-2.jpg",
+        "dayan-3.jpg",
+        "dayan-4.jpg"
+      ],
+      "files": [
+        {
+          "file": "dayan.jpg",
+          "bytes": 190073,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/4b90f603738da9773912f0631b19ef198618367a4568",
+          "dims": "848x606"
+        },
+        {
+          "file": "dayan-2.jpg",
+          "bytes": 28918,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/6d81800a19d8bc3e29753bd98f8ba61ea8d345a7",
+          "dims": "500x375"
+        },
+        {
+          "file": "dayan-3.jpg",
+          "bytes": 242974,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/8644ebf81a4c510f5d46146b6659252dd52aa5c5",
+          "dims": "1280x960"
+        },
+        {
+          "file": "dayan-4.jpg",
+          "bytes": 58370,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/8d5494eef01f3a29b62615d49f25bc315c607c3a",
+          "dims": "690x517"
+        }
+      ],
+      "dims": "848x606",
+      "bytes": 190073,
+      "source": "百度百科",
+      "sourcePage": "https://baike.baidu.com/item/大雁塔",
+      "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/4b90f603738da9773912f0631b19ef198618367a4568"
+    },
+    {
+      "id": "suzhou",
+      "name": "苏州古典园林",
+      "city": "苏州",
+      "category": "building",
+      "main": "suzhou.jpg",
+      "gallery": [
+        "suzhou-2.jpg",
+        "suzhou-3.jpg",
+        "suzhou-4.jpg"
+      ],
+      "files": [
+        {
+          "file": "suzhou.jpg",
+          "bytes": 382755,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/024f78f0f736afc3793177bdd140fcc4b74542a9b4e8?x-bce-process=image/resize,m_lfit,w_1920,h_1920,limit_1/format,f_jpg/quality,Q_90",
+          "dims": "1198x798"
+        },
+        {
+          "file": "suzhou-2.jpg",
+          "bytes": 578666,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/83025aafa40f4bfbfbed409eed166ff0f736aec3b2fd?x-bce-process=image/resize,m_lfit,w_1920,h_1920,limit_1/format,f_jpg/quality,Q_90",
+          "dims": "1600x1200"
+        },
+        {
+          "file": "suzhou-3.jpg",
+          "bytes": 79666,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/79f0f736afc379310a55c0dd8688a04543a98326bbb9",
+          "dims": "465x310"
+        },
+        {
+          "file": "suzhou-4.jpg",
+          "bytes": 318267,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/cdbf6c81800a19d8bc3e1ca9d5b0958ba61ea8d3e84e",
+          "dims": "1000x600"
+        }
+      ],
+      "dims": "693x959",
+      "bytes": 357755,
+      "source": "百度百科",
+      "sourcePage": "https://baike.baidu.com/item/苏州古典园林",
+      "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/a2cc7cd98d1001e93901ef552c526cec54e736d1396e"
+    },
+    {
+      "id": "liangzhu",
+      "name": "良渚古城遗址",
+      "city": "杭州",
+      "category": "ruins",
+      "main": "liangzhu.jpg",
+      "gallery": [
+        "liangzhu-2.jpg",
+        "liangzhu-3.jpg",
+        "liangzhu-4.jpg"
+      ],
+      "files": [
+        {
+          "file": "liangzhu.jpg",
+          "bytes": 37288,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/smart/d4628535e5dde71190efa6ac07b3d91b9d16fdfacb6e-bkimg-process,v_1,rw_16,rh_9,maxl_640,pad_1",
+          "dims": "640x427"
+        },
+        {
+          "file": "liangzhu-2.jpg",
+          "bytes": 37288,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/e4dde71190ef76c6e986e1cd9316fdfaae5167fb",
+          "dims": "640x427"
+        },
+        {
+          "file": "liangzhu-3.jpg",
+          "bytes": 152995,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/e1fe9925bc315c6034a832d19be9dc1349540923d9cf",
+          "dims": "1050x630"
+        },
+        {
+          "file": "liangzhu-4.jpg",
+          "bytes": 62655,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/060828381f30e9248f2e7fd442086e061c95f749",
+          "dims": "537x322"
+        }
+      ],
+      "dims": "1920x1078",
+      "bytes": 278977,
+      "source": "百度百科",
+      "sourcePage": "https://baike.baidu.com/item/良渚古城遗址",
+      "remoteUrl": "https://bkimg.cdn.bcebos.com/smart/d4628535e5dde71190efa6ac07b3d91b9d16fdfacb6e-bkimg-process,v_1,rw_16,rh_9,maxl_640,pad_1"
+    },
+    {
+      "id": "quanzhou",
+      "name": "泉州：宋元中国的世界海洋商贸中心",
+      "city": "泉州",
+      "category": "trade",
+      "main": "quanzhou.jpg",
+      "gallery": [
+        "quanzhou-2.png",
+        "quanzhou-3.jpg",
+        "quanzhou-4.png"
+      ],
+      "files": [
+        {
+          "file": "quanzhou.jpg",
+          "bytes": 258870,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/f11f3a292df5e0fe9925f2016d3b23a85edf8db1d422?x-bce-process=image/resize,m_lfit,w_1920,h_1920,limit_1/format,f_jpg/quality,Q_90",
+          "dims": "1082x800"
+        },
+        {
+          "file": "quanzhou-2.png",
+          "bytes": 1131877,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/f11f3a292df5e0fe9925f2016d3b23a85edf8db1d422?x-bce-process=image/resize,m_lfit,w_960,h_960,limit_1/format,f_png",
+          "dims": "960x710"
+        },
+        {
+          "file": "quanzhou-3.jpg",
+          "bytes": 328249,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/2f738bd4b31c8701a18b4ef91624892f070828385122",
+          "dims": "1114x800"
+        },
+        {
+          "file": "quanzhou-4.png",
+          "bytes": 1285968,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/1f178a82b9014a90f603c9bd982c2e12b31bb0514025?x-bce-process=image/resize,m_lfit,w_960,h_960,limit_1/format,f_png",
+          "dims": "960x673"
+        }
+      ],
+      "dims": "1066x800",
+      "bytes": 249177,
+      "source": "百度百科",
+      "sourcePage": "https://baike.baidu.com/item/泉州",
+      "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/bd3eb13533fa828ba61ecee2cc445634970a304eec25"
+    },
+    {
+      "id": "dujiangyan",
+      "name": "都江堰",
+      "city": "都江堰",
+      "category": "building",
+      "main": "dujiangyan.jpg",
+      "gallery": [
+        "dujiangyan-2.jpg",
+        "dujiangyan-3.jpg",
+        "dujiangyan-4.jpg"
+      ],
+      "files": [
+        {
+          "file": "dujiangyan.jpg",
+          "bytes": 78656,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/smart/0df3d7ca7bcb0a46f21fd935a835e1246b600c33013a-bkimg-process,v_1,rw_16,rh_9,maxl_640,pad_1",
+          "dims": "1080x608"
+        },
+        {
+          "file": "dujiangyan-2.jpg",
+          "bytes": 78656,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/a6efce1b9d16fdfaaf51cf368ed39b5494eef11fcded",
+          "dims": "1080x608"
+        },
+        {
+          "file": "dujiangyan-3.jpg",
+          "bytes": 377435,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/f636afc379310a55b319b518341f54a98226cefcba9f",
+          "dims": "1080x648"
+        },
+        {
+          "file": "dujiangyan-4.jpg",
+          "bytes": 407063,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/d1a20cf431adcbefcec7e726a3af2edda3cc9f1b",
+          "dims": "1888x1133"
+        }
+      ],
+      "dims": "1920x1080",
+      "bytes": 237233,
+      "source": "百度百科",
+      "sourcePage": "https://baike.baidu.com/item/都江堰",
+      "remoteUrl": "https://bkimg.cdn.bcebos.com/smart/0df3d7ca7bcb0a46f21fd935a835e1246b600c33013a-bkimg-process,v_1,rw_16,rh_9,maxl_640,pad_1"
+    },
+    {
+      "id": "potala",
+      "name": "布达拉宫",
+      "city": "拉萨",
+      "category": "building",
+      "main": "potala.jpg",
+      "gallery": [
+        "potala-2.jpg",
+        "potala-3.jpg",
+        "potala-4.jpg"
+      ],
+      "files": [
+        {
+          "file": "potala.jpg",
+          "bytes": 178580,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/d15717249cee0479d50742ed?x-bce-process=image/resize,m_lfit,w_1920,h_1920,limit_1/format,f_jpg/quality,Q_90",
+          "dims": "1920x1286"
+        },
+        {
+          "file": "potala-2.jpg",
+          "bytes": 180853,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/11794d43400b21439213c6e9?x-bce-process=image/resize,m_lfit,w_1920,h_1920,limit_1/format,f_jpg/quality,Q_90",
+          "dims": "1920x1286"
+        },
+        {
+          "file": "potala-3.jpg",
+          "bytes": 150374,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/caef76094b36acaf2edd622de0819a1001e938013693",
+          "dims": "800x800"
+        },
+        {
+          "file": "potala-4.jpg",
+          "bytes": 55482,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/ae51f3deb48f8c5494ee2efea6713af5e0fe9825d193",
+          "dims": "800x800"
+        }
+      ],
+      "dims": "800x800",
+      "bytes": 100935,
+      "source": "百度百科",
+      "sourcePage": "https://baike.baidu.com/item/布达拉宫",
+      "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/10dfa9ec8a13632762d081e20dd7b7ec08fa503d6993"
+    },
+    {
+      "id": "longmen",
+      "name": "龙门石窟",
+      "city": "洛阳",
+      "category": "ruins",
+      "main": "longmen.jpg",
+      "gallery": [
+        "longmen-2.jpg",
+        "longmen-3.jpg",
+        "longmen-4.jpg"
+      ],
+      "files": [
+        {
+          "file": "longmen.jpg",
+          "bytes": 355920,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/fcfaaf51f3deb48f8c545ffe5e462d292df5e0fed2c3?x-bce-process=image/resize,m_lfit,w_1920,h_1920,limit_1/format,f_jpg/quality,Q_90",
+          "dims": "1920x1080"
+        },
+        {
+          "file": "longmen-2.jpg",
+          "bytes": 444313,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/smart/e850352ac65c10385343cff2a6488413b07eca8023f0-bkimg-process,v_1,rw_16,rh_9,maxl_640,pad_1",
+          "dims": "1920x1078"
+        },
+        {
+          "file": "longmen-3.jpg",
+          "bytes": 294444,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/smart/6a63f6246b600c3387442ba76a11460fd9f9d72a0b14-bkimg-process,v_1,rw_16,rh_9,maxl_640,pad_1",
+          "dims": "1920x1080"
+        },
+        {
+          "file": "longmen-4.jpg",
+          "bytes": 219793,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/smart/8ad4b31c8701a18b87d676a53474100828381e30509f-bkimg-process,v_1,rw_16,rh_9,maxl_640,pad_1",
+          "dims": "1920x1080"
+        }
+      ],
+      "dims": "1920x1080",
+      "bytes": 180625,
+      "source": "百度百科",
+      "sourcePage": "https://baike.baidu.com/item/龙门石窟",
+      "remoteUrl": "https://bkimg.cdn.bcebos.com/smart/bd315c6034a85edf8db10a298a021e23dd54564edf38-bkimg-process,v_1,rw_16,rh_9,maxl_640,pad_1"
+    },
+    {
+      "id": "kaiping",
+      "name": "开平碉楼与村落",
+      "city": "开平",
+      "category": "building",
+      "main": "kaiping.jpg",
+      "gallery": [
+        "kaiping-2.jpg",
+        "kaiping-3.jpg",
+        "kaiping-4.png"
+      ],
+      "files": [
+        {
+          "file": "kaiping.jpg",
+          "bytes": 143787,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/0bd162d9f2d3572c8df3d4fb8413632762d0c380",
+          "dims": "1080x750"
+        },
+        {
+          "file": "kaiping-2.jpg",
+          "bytes": 331171,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/smart/38dbb6fd5266d0160924673c6f70c30735fae6cd9f29-bkimg-process,v_1,rw_16,rh_9,maxl_640,pad_1",
+          "dims": "1728x1080"
+        },
+        {
+          "file": "kaiping-3.jpg",
+          "bytes": 787638,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/smart/ac4bd11373f082025aaf472eb8a0ecedab64034fadd4-bkimg-process,v_1,rw_16,rh_9,maxl_640,pad_1",
+          "dims": "1920x1078"
+        },
+        {
+          "file": "kaiping-4.png",
+          "bytes": 275307,
+          "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/35a85edf8db1cb1349543e019201414e9258d109ddde",
+          "dims": "500x300"
+        }
+      ],
+      "dims": "1080x750",
+      "bytes": 143787,
+      "source": "百度百科",
+      "sourcePage": "https://baike.baidu.com/item/开平碉楼",
+      "remoteUrl": "https://bkimg.cdn.bcebos.com/pic/0bd162d9f2d3572c8df3d4fb8413632762d0c380"
+    },
+    {
+      "id": "dapeng",
+      "name": "大鹏所城",
+      "city": "深圳",
+      "category": "building",
+      "main": "dapeng.jpg",
+      "gallery": [
+        "dapeng.jpg"
+      ],
+      "source": "全国重点文物保护单位 / 国家历史文化名村",
+      "sourcePage": "https://baike.baidu.com/item/大鹏所城",
+      "credit": "百度百科 · 词条配图"
+    },
+    {
+      "id": "zhongyingjie",
+      "name": "中英街",
+      "city": "深圳",
+      "category": "district",
+      "main": "zhongyingjie.jpg",
+      "gallery": [
+        "zhongyingjie.jpg"
+      ],
+      "source": "广东省文物保护单位 / 中国历史文化名街",
+      "sourcePage": "https://baike.baidu.com/item/中英街",
+      "credit": "百度百科 · 词条配图"
+    },
+    {
+      "id": "chiwan",
+      "name": "赤湾左炮台与宋少帝陵",
+      "city": "深圳",
+      "category": "ruins",
+      "main": "chiwan.jpg",
+      "gallery": [
+        "chiwan.jpg"
+      ],
+      "source": "广东省文物保护单位",
+      "sourcePage": "https://baike.baidu.com/item/赤湾左炮台",
+      "credit": "百度百科 · 词条配图"
+    },
+    {
+      "id": "yida",
+      "name": "中共一大会址",
+      "city": "上海",
+      "category": "building",
+      "main": "yida.jpg",
+      "gallery": [
+        "yida.jpg"
+      ],
+      "source": "全国重点文物保护单位",
+      "sourcePage": "https://baike.baidu.com/item/中共一大会址",
+      "credit": "百度百科 · 词条配图"
+    },
+    {
+      "id": "yuyuan",
+      "name": "豫园",
+      "city": "上海",
+      "category": "building",
+      "main": "yuyuan.jpg",
+      "gallery": [
+        "yuyuan.jpg"
+      ],
+      "source": "全国重点文物保护单位",
+      "sourcePage": "https://baike.baidu.com/item/豫园",
+      "credit": "百度百科 · 词条配图"
+    },
+    {
+      "id": "jiangnan",
+      "name": "江南机器制造总局旧址",
+      "city": "上海",
+      "category": "industry",
+      "main": "jiangnan.jpg",
+      "gallery": [
+        "jiangnan.jpg"
+      ],
+      "source": "全国重点文物保护单位 / 国家工业遗产",
+      "sourcePage": "https://baike.baidu.com/item/江南制造局",
+      "credit": "百度百科 · 词条配图"
+    },
+    {
+      "id": "longhua",
+      "name": "龙华塔与历史风貌区",
+      "city": "上海",
+      "category": "building",
+      "main": "longhua.jpg",
+      "gallery": [
+        "longhua.jpg"
+      ],
+      "source": "全国重点文物保护单位",
+      "sourcePage": "https://baike.baidu.com/item/上海龙华塔",
+      "credit": "百度百科 · 词条配图"
+    },
+    {
+      "id": "chenjiaci",
+      "name": "陈家祠（陈氏书院）",
+      "city": "广州",
+      "category": "building",
+      "main": "chenjiaci.jpg",
+      "gallery": [
+        "chenjiaci.jpg"
+      ],
+      "source": "全国重点文物保护单位",
+      "sourcePage": "https://baike.baidu.com/item/陈家祠",
+      "credit": "百度百科 · 词条配图"
+    },
+    {
+      "id": "nanyue",
+      "name": "南越国宫署遗址",
+      "city": "广州",
+      "category": "ruins",
+      "main": "nanyue.jpg",
+      "gallery": [
+        "nanyue.jpg"
+      ],
+      "source": "全国重点文物保护单位",
+      "sourcePage": "https://baike.baidu.com/item/南越国宫署遗址",
+      "credit": "百度百科 · 词条配图"
+    },
+    {
+      "id": "huangpugang",
+      "name": "黄埔古港与粤海第一关",
+      "city": "广州",
+      "category": "port",
+      "main": "huangpugang.jpg",
+      "gallery": [
+        "huangpugang.jpg"
+      ],
+      "source": "广东省文物保护单位",
+      "sourcePage": "https://baike.baidu.com/item/黄埔古港遗址",
+      "credit": "百度百科 · 词条配图"
+    },
+    {
+      "id": "jimei",
+      "name": "集美学村",
+      "city": "厦门",
+      "category": "building",
+      "main": "jimei.jpg",
+      "gallery": [
+        "jimei.jpg"
+      ],
+      "source": "全国重点文物保护单位",
+      "sourcePage": "https://baike.baidu.com/item/集美学村",
+      "credit": "百度百科 · 词条配图"
+    },
+    {
+      "id": "hulishan",
+      "name": "胡里山炮台",
+      "city": "厦门",
+      "category": "building",
+      "main": "hulishan.jpg",
+      "gallery": [
+        "hulishan.jpg"
+      ],
+      "source": "全国重点文物保护单位",
+      "sourcePage": "https://baike.baidu.com/item/胡里山炮台",
+      "credit": "百度百科 · 词条配图"
+    },
+    {
+      "id": "nanputuo",
+      "name": "南普陀寺",
+      "city": "厦门",
+      "category": "building",
+      "main": "nanputuo.jpg",
+      "gallery": [
+        "nanputuo.jpg"
+      ],
+      "source": "全国重点佛教寺院 / 福建省文物保护单位",
+      "sourcePage": "https://baike.baidu.com/item/南普陀寺",
+      "credit": "百度百科 · 词条配图"
+    },
+    {
+      "id": "shapowei",
+      "name": "沙坡尾避风坞",
+      "city": "厦门",
+      "category": "port",
+      "main": "shapowei.jpg",
+      "gallery": [
+        "shapowei.jpg"
+      ],
+      "source": "厦门市历史文化街区",
+      "sourcePage": "https://baike.baidu.com/item/沙坡尾",
+      "credit": "百度百科 · 词条配图"
+    }
+  ]
+}

@@ -1,0 +1,90 @@
+{
+  "metadata": {
+    "note": "城市建成区真实遥感轮廓数据：深圳、上海、广州、北京、杭州、武汉、成都、青岛采用 Atlas of Urban Expansion（AUE, 2016 Edition, Phase I）Landsat 遥感解译真实轮廓；厦门采用欧盟联合研究中心 JRC GHSL（GHS-BUILT-S R2023A, 100m）真实建成面矢量化轮廓。三个时期统一对应 1990 / 2000 / 2014 年（WGS84）。",
+    "cities": [
+      "shenzhen",
+      "shanghai",
+      "guangzhou",
+      "xiamen",
+      "beijing",
+      "hangzhou",
+      "wuhan",
+      "chengdu",
+      "qingdao"
+    ]
+  },
+  "cities": {
+    "shenzhen": {
+      "label": "深圳",
+      "center": [114.06, 22.55],
+      "years": [1990, 2000, 2014],
+      "resolution": "AUE 2016 城市轮廓（Landsat 解译，约 30m 级，UTM 50N 重投影）",
+      "source": "Atlas of Urban Expansion - 2016 Edition, Phase I (NYU / Lincoln Institute / UN-Habitat)",
+      "unit": "平方米（PostGIS ST_Area / Turf 测地计算）"
+    },
+    "shanghai": {
+      "label": "上海",
+      "center": [121.47, 31.23],
+      "years": [1990, 2000, 2014],
+      "resolution": "AUE 2016 城市轮廓（Landsat 解译，约 30m 级，UTM 51N 重投影）",
+      "source": "Atlas of Urban Expansion - 2016 Edition, Phase I (NYU / Lincoln Institute / UN-Habitat)",
+      "unit": "平方米（PostGIS ST_Area / Turf 测地计算）"
+    },
+    "guangzhou": {
+      "label": "广州",
+      "center": [113.26, 23.13],
+      "years": [1990, 2000, 2014],
+      "resolution": "AUE 2016 广佛连片大都市区建成区轮廓（Landsat 30m 级，含珠三角核心连绵区）",
+      "source": "Atlas of Urban Expansion - 2016 Edition, Phase I (Guangzhou Metropolitan Extent)",
+      "unit": "平方米（PostGIS ST_Area / Turf 测地计算）"
+    },
+    "xiamen": {
+      "label": "厦门",
+      "center": [118.12, 24.55],
+      "years": [1990, 2000, 2014],
+      "resolution": "JRC GHSL R2023A 建成区轮廓（100m 栅格形态学平滑与矢量化，非 AUE 样本）",
+      "source": "European Commission JRC - GHS-BUILT-S R2023A (1990 / 2000 / 2015→2014)",
+      "unit": "平方米（PostGIS ST_Area / Turf 测地计算）"
+    },
+    "beijing": {
+      "label": "北京",
+      "center": [116.40, 39.90],
+      "years": [1990, 2000, 2014],
+      "resolution": "AUE 2016 城市轮廓（Landsat 解译，约 30m 级，UTM 50N 重投影）",
+      "source": "Atlas of Urban Expansion - 2016 Edition, Phase I (NYU / Lincoln Institute / UN-Habitat)",
+      "unit": "平方米（PostGIS ST_Area / Turf 测地计算）"
+    },
+    "hangzhou": {
+      "label": "杭州",
+      "center": [120.16, 30.27],
+      "years": [1990, 2000, 2014],
+      "resolution": "AUE 2016 城市轮廓（Landsat 解译，约 30m 级，UTM 50N 重投影）",
+      "source": "Atlas of Urban Expansion - 2016 Edition, Phase I (NYU / Lincoln Institute / UN-Habitat)",
+      "unit": "平方米（PostGIS ST_Area / Turf 测地计算）"
+    },
+    "wuhan": {
+      "label": "武汉",
+      "center": [114.30, 30.59],
+      "years": [1990, 2000, 2014],
+      "resolution": "AUE 2016 城市轮廓（Landsat 解译，约 30m 级，UTM 49N 重投影）",
+      "source": "Atlas of Urban Expansion - 2016 Edition, Phase I (NYU / Lincoln Institute / UN-Habitat)",
+      "unit": "平方米（PostGIS ST_Area / Turf 测地计算）"
+    },
+    "chengdu": {
+      "label": "成都",
+      "center": [104.07, 30.67],
+      "years": [1990, 2000, 2014],
+      "resolution": "AUE 2016 城市轮廓（Landsat 解译，约 30m 级，UTM 48N 重投影）",
+      "source": "Atlas of Urban Expansion - 2016 Edition, Phase I (NYU / Lincoln Institute / UN-Habitat)",
+      "unit": "平方米（PostGIS ST_Area / Turf 测地计算）"
+    },
+    "qingdao": {
+      "label": "青岛",
+      "center": [120.38, 36.07],
+      "years": [1990, 2000, 2014],
+      "resolution": "AUE 2016 城市轮廓（Landsat 解译，约 30m 级，UTM 50N 重投影）",
+      "source": "Atlas of Urban Expansion - 2016 Edition, Phase I (NYU / Lincoln Institute / UN-Habitat)",
+      "unit": "平方米（PostGIS ST_Area / Turf 测地计算）"
+    }
+  }
+}
