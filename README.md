@@ -1,5 +1,6 @@
 # 山海新篇 · 四城记忆与 GIS 时空分析实验室 (WebGIS 全栈版)
 
+> 🌐 **在线演示（GitHub Pages）**：[https://yeston463.github.io/webgis-history/](https://yeston463.github.io/webgis-history/)  
 > 一个基于 **Node.js + PostGIS 空间数据库 + GeoServer (OGC WMS/WFS) + MapLibre GL JS + Turf.js** 的全栈 WebGIS 课程大作业。
 > 聚焦"真实空间数据 + PostGIS/Turf 椭球测地空间分析 + OGC 标准服务"，支持现场答辩与自由探索。
 > 当前站点仅保留**四城记忆**与**分析实验室**两大模块；历史文化/改革开放独立页已归档至 `_archive/2026-10-28-removed/`。
