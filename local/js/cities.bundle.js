@@ -297,8 +297,31 @@
   var TDT_RETRY_MAX = 3;
   var TDT_RETRY_BASE_MS = 700;
   var TDT_QUEUE_MAX = 128;
+  var TDT_MAX_PER_SEC = 20;
   var tdtActive = 0;
   var tdtQueue = [];
+  var tdtSecBuckets = /* @__PURE__ */ new Map();
+  function tdtRateWait() {
+    return new Promise((resolve) => {
+      const step = () => {
+        const idx = Math.floor(Date.now() / 1e3);
+        const n = tdtSecBuckets.get(idx) || 0;
+        if (n < TDT_MAX_PER_SEC) {
+          tdtSecBuckets.set(idx, n + 1);
+          if (tdtSecBuckets.size > 4) {
+            const cutoff = idx - 3;
+            for (const k of tdtSecBuckets.keys()) {
+              if (k < cutoff) tdtSecBuckets.delete(k);
+            }
+          }
+          resolve();
+          return;
+        }
+        setTimeout(step, 70 + Math.floor(Math.random() * 60));
+      };
+      step();
+    });
+  }
   function abortErr() {
     return new DOMException("Aborted", "AbortError");
   }
@@ -355,6 +378,7 @@
       let buf;
       try {
         if (signal && signal.aborted) throw abortErr();
+        await tdtRateWait();
         buf = await tdtEnqueue(async () => {
           const r = await fetch(real, { signal, credentials: "omit", referrerPolicy: "no-referrer-when-downgrade" });
           if (!r.ok) {
@@ -374,10 +398,14 @@
       } catch (err) {
         if (signal && signal.aborted) throw abortErr();
         const status = err && err.status;
-        const retriable = attempt < TDT_RETRY_MAX && (status === 429 || status >= 500 && status <= 599 || status === void 0);
+        const retriable = attempt < TDT_RETRY_MAX && (status === 400 || status === 429 || status >= 500 && status <= 599 || status === void 0);
+        if (retriable) {
+          const jitter = Math.floor(Math.random() * 120);
+          await new Promise((r) => setTimeout(r, TDT_RETRY_BASE_MS * Math.pow(2, attempt) + jitter));
+          continue;
+        }
         if (status === void 0 || status >= 400 && status <= 599 || status === 429) noteTdtResult(false);
-        if (!retriable) throw err;
-        await new Promise((r) => setTimeout(r, TDT_RETRY_BASE_MS * Math.pow(2, attempt)));
+        throw err;
       }
     }
   }
@@ -456,6 +484,16 @@
       return null;
     }
   }
+  function wbFbAnchorId(map2) {
+    try {
+      const want = /* @__PURE__ */ new Set(["bu3d-city-ov", "bu3d-city", "tdt-vec", "tdt-cva"]);
+      for (const l of map2.getStyle().layers || []) {
+        if (want.has(l.id)) return l.id;
+      }
+    } catch (e) {
+    }
+    return void 0;
+  }
   function ensureFbLayers(map2, provinces) {
     if (!map2.getSource(WB_FB_SRC_LAND)) {
       map2.addSource(WB_FB_SRC_LAND, { type: "geojson", data: provinces });
@@ -486,16 +524,13 @@
         }
       })();
     }
-    const anchor = ["bu3d-city-ov", "bu3d-city", "tdt-vec", "tdt-cva"].find((id) => map2.getLayer(id)) || void 0;
-    let at = anchor;
     if (!map2.getLayer(WB_FB_L_LAND)) {
       map2.addLayer({
         id: WB_FB_L_LAND,
         type: "fill",
         source: WB_FB_SRC_LAND,
         paint: { "fill-color": "#ece2cc", "fill-opacity": 0.97 }
-      }, at);
-      at = WB_FB_L_LAND;
+      });
     }
     if (!map2.getLayer(WB_FB_L_PROV)) {
       map2.addLayer({
@@ -503,8 +538,7 @@
         type: "line",
         source: WB_FB_SRC_LAND,
         paint: { "line-color": "#c3b28c", "line-width": 0.9, "line-opacity": 0.9 }
-      }, at);
-      at = WB_FB_L_PROV;
+      });
     }
     if (!map2.getLayer(WB_FB_L_DASH)) {
       map2.addLayer({
@@ -512,7 +546,22 @@
         type: "line",
         source: WB_FB_SRC_DASH,
         paint: { "line-color": "#9a5524", "line-width": 1.8, "line-dasharray": [2, 1.8], "line-opacity": 0.95 }
-      }, at);
+      });
+    }
+    const at = wbFbAnchorId(map2);
+    if (at) {
+      try {
+        map2.moveLayer(WB_FB_L_LAND, at);
+      } catch (e) {
+      }
+      try {
+        map2.moveLayer(WB_FB_L_PROV, WB_FB_L_LAND);
+      } catch (e) {
+      }
+      try {
+        map2.moveLayer(WB_FB_L_DASH, WB_FB_L_PROV);
+      } catch (e) {
+      }
     }
   }
   function ensureFbMarkers(map2, provinces) {

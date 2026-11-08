@@ -50,8 +50,33 @@ const TDT_MAX_CONCURRENT = 6;
 const TDT_RETRY_MAX = 3;
 const TDT_RETRY_BASE_MS = 700;
 const TDT_QUEUE_MAX = 128;
+// 天地图浏览器端 key 有瞬时限流（超并发/超频窗口内请求会被用 400/429 拒掉），
+// 全页统一滑窗限速：每秒最多发起 TDT_MAX_PER_SEC 张，防止切城/复位一帧拉爆造成成片 400
+const TDT_MAX_PER_SEC = 20;
 let tdtActive = 0;
 const tdtQueue = [];
+const tdtSecBuckets = new Map();
+
+// 等待滑窗配额：桶键 = Math.floor(now / 1000)，旧桶懒清理
+function tdtRateWait() {
+  return new Promise((resolve) => {
+    const step = () => {
+      const idx = Math.floor(Date.now() / 1000);
+      const n = tdtSecBuckets.get(idx) || 0;
+      if (n < TDT_MAX_PER_SEC) {
+        tdtSecBuckets.set(idx, n + 1);
+        if (tdtSecBuckets.size > 4) {
+          const cutoff = idx - 3;
+          for (const k of tdtSecBuckets.keys()) { if (k < cutoff) tdtSecBuckets.delete(k); }
+        }
+        resolve();
+        return;
+      }
+      setTimeout(step, 70 + Math.floor(Math.random() * 60));
+    };
+    step();
+  });
+}
 
 function abortErr() { return new DOMException('Aborted', 'AbortError'); }
 
@@ -102,6 +127,7 @@ async function tdtLoadProtocol(params, abortController) {
     let buf;
     try {
       if (signal && signal.aborted) throw abortErr();
+      await tdtRateWait();
       buf = await tdtEnqueue(async () => {
         const r = await fetch(real, { signal, credentials: 'omit', referrerPolicy: 'no-referrer-when-downgrade' });
         if (!r.ok) { const err = new Error('tianditu ' + r.status); err.status = r.status; throw err; }
@@ -113,11 +139,17 @@ async function tdtLoadProtocol(params, abortController) {
     } catch (err) {
       if (signal && signal.aborted) throw abortErr();
       const status = err && err.status;
+      // 400（瞬时限流的典型响应）/429/5xx 均按退避重试；其余状态（如 403 非法 key）直接失败；
+      // 健康环只统计**最终失败**（重试成功的不计），避免降级被高 NP 的瞬时抖动误触发
       const retriable = attempt < TDT_RETRY_MAX
-        && (status === 429 || (status >= 500 && status <= 599) || status === undefined);
+        && (status === 400 || status === 429 || (status >= 500 && status <= 599) || status === undefined);
+      if (retriable) {
+        const jitter = Math.floor(Math.random() * 120);
+        await new Promise((r) => setTimeout(r, TDT_RETRY_BASE_MS * Math.pow(2, attempt) + jitter));
+        continue;
+      }
       if (status === undefined || (status >= 400 && status <= 599) || status === 429) noteTdtResult(false);
-      if (!retriable) throw err;
-      await new Promise((r) => setTimeout(r, TDT_RETRY_BASE_MS * Math.pow(2, attempt)));
+      throw err;
     }
   }
 }
@@ -221,7 +253,21 @@ function polygonCentroid(geom) {
   } catch (e) { return null; }
 }
 
-// 按需创建降级底图图层（陆地填充 / 省界线 / 十段线），锚点保证落在 3D 建筑与业务图层之下
+// 锚点：按【样式栈实际顺序】找第一个业务底图/建筑层。候选列表的 find 存在盲区：
+// bu3d-city(-ov) 与 tdt 系层挂载时序错开时，栈序中的相对位置与候选列表不一致，
+// 会把降级层插到楼体之上。此处按 getStyle().layers 的真实顺序扫描。
+function wbFbAnchorId(map) {
+  try {
+    const want = new Set(['bu3d-city-ov', 'bu3d-city', 'tdt-vec', 'tdt-cva']);
+    for (const l of (map.getStyle().layers || [])) {
+      if (want.has(l.id)) return l.id;
+    }
+  } catch (e) {}
+  return undefined;
+}
+
+// 按需创建降级底图图层（陆地填充 / 省界线 / 十段线），并用 moveLayer 显式校正三者
+// 到「首个业务层之下」，不依赖 addLayer 的插入次序（防止挂载时序错开把降级层顶到楼上）
 function ensureFbLayers(map, provinces) {
   if (!map.getSource(WB_FB_SRC_LAND)) {
     map.addSource(WB_FB_SRC_LAND, { type: 'geojson', data: provinces });
@@ -251,28 +297,30 @@ function ensureFbLayers(map, provinces) {
       } catch (e) { return []; }
     })();
   }
-  const anchor = ['bu3d-city-ov', 'bu3d-city', 'tdt-vec', 'tdt-cva']
-    .find((id) => map.getLayer(id)) || undefined;
-  let at = anchor;
   if (!map.getLayer(WB_FB_L_LAND)) {
     map.addLayer({
       id: WB_FB_L_LAND, type: 'fill', source: WB_FB_SRC_LAND,
       paint: { 'fill-color': '#ece2cc', 'fill-opacity': 0.97 },
-    }, at);
-    at = WB_FB_L_LAND;
+    });
   }
   if (!map.getLayer(WB_FB_L_PROV)) {
     map.addLayer({
       id: WB_FB_L_PROV, type: 'line', source: WB_FB_SRC_LAND,
       paint: { 'line-color': '#c3b28c', 'line-width': 0.9, 'line-opacity': 0.9 },
-    }, at);
-    at = WB_FB_L_PROV;
+    });
   }
   if (!map.getLayer(WB_FB_L_DASH)) {
     map.addLayer({
       id: WB_FB_L_DASH, type: 'line', source: WB_FB_SRC_DASH,
       paint: { 'line-color': '#9a5524', 'line-width': 1.8, 'line-dasharray': [2, 1.8], 'line-opacity': 0.95 },
-    }, at);
+    });
+  }
+  // 显式落位：land 在锚点（首个业务层）之下，prov 在 land 之下，dash 在 prov 之下
+  const at = wbFbAnchorId(map);
+  if (at) {
+    try { map.moveLayer(WB_FB_L_LAND, at); } catch (e) {}
+    try { map.moveLayer(WB_FB_L_PROV, WB_FB_L_LAND); } catch (e) {}
+    try { map.moveLayer(WB_FB_L_DASH, WB_FB_L_PROV); } catch (e) {}
   }
 }
 
