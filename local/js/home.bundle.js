@@ -38,9 +38,37 @@
     }
     return String(url).split("?")[0].replace(/^(\.\.\/|\.\/)+/, "");
   }
+  var _chunkPromises = /* @__PURE__ */ new Map();
+  function ensureLocalChunk(key) {
+    if (!window.__LOCAL_DATA__) window.__LOCAL_DATA__ = {};
+    if (Object.prototype.hasOwnProperty.call(window.__LOCAL_DATA__, key)) return Promise.resolve(true);
+    if (_chunkPromises.has(key)) return _chunkPromises.get(key);
+    const prefix = location.pathname.includes("/pages/") ? "../" : "";
+    const p = new Promise((resolve) => {
+      const script = document.createElement("script");
+      let settled = false;
+      const finish = (ok) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        _chunkPromises.delete(key);
+        resolve(ok);
+      };
+      const timer = setTimeout(() => finish(false), 3e4);
+      script.onload = () => finish(true);
+      script.onerror = () => finish(false);
+      script.src = prefix + key + ".js";
+      document.head.appendChild(script);
+    });
+    _chunkPromises.set(key, p);
+    return p;
+  }
   async function fetchJSON(url, { signal, noCache = false } = {}) {
     if (!noCache && _cache.has(url)) return _cache.get(url);
     const key = localDataKey(url);
+    if (window.__LOCAL_FILE_BUILD__ && !Object.prototype.hasOwnProperty.call(window.__LOCAL_DATA__ || {}, key)) {
+      await ensureLocalChunk(key);
+    }
     if (window.__LOCAL_DATA__ && Object.prototype.hasOwnProperty.call(window.__LOCAL_DATA__, key)) {
       const data2 = window.__LOCAL_DATA__[key];
       if (!noCache) _cache.set(url, data2);

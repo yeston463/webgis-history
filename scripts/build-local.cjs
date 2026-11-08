@@ -56,10 +56,13 @@ const urbanKeys = fs.readdirSync(path.join(DATA, 'urban-expansion'))
   .filter((f) => f.endsWith('.geojson'))
   .sort()
   .map((f) => 'data/urban-expansion/' + f);
+const buildingsDir = path.join(DATA, 'buildings');
+const hasBuildings = fs.existsSync(buildingsDir);
 const analysisKeys = [
   'data/heritage.geojson',
   'data/reform-events.json',
   'data/urban-expansion/urban-index.json',
+  ...(hasBuildings ? ['data/buildings/buildings-meta.json'] : []),
   ...urbanKeys,
 ];
 
@@ -68,6 +71,20 @@ writeRegistry('local-data-shared.js', basemapKeys);
 writeRegistry('local-data-home.js', ['data/cities.json']);
 writeRegistry('local-data-cities.js', citiesKeys);
 writeRegistry('local-data-analysis.js', analysisKeys);
+
+// 九城建筑轮廓体量大，拆成 data/buildings/*.geojson.js 分片，由 ensureLocalChunk 按需注入
+if (hasBuildings) {
+  const outDir = path.join(OUT, 'data', 'buildings');
+  ensureDir(outDir);
+  let total = 0, count = 0;
+  for (const f of fs.readdirSync(buildingsDir).filter((n) => n.endsWith('.geojson')).sort()) {
+    const key = 'data/buildings/' + f;
+    const js = `window.__LOCAL_DATA__ = Object.assign(window.__LOCAL_DATA__ || {}, {${JSON.stringify(key)}:${JSON.stringify(readJson(key))}});\n`;
+    fs.writeFileSync(path.join(outDir, f + '.js'), js, 'utf8');
+    total += js.length; count += 1;
+  }
+  console.log(`  data/buildings/*.geojson.js  ${count} 片  ${(total / 1048576).toFixed(1)} MB（按需加载）`);
+}
 
 console.log('生成本地 HTML ...');
 buildHtml('index.html', 'index.html', ['local-data-home.js'], 'home.bundle.js', '');
@@ -104,6 +121,7 @@ fs.writeFileSync(path.join(OUT, 'README.txt'), `山海新篇 · 本地文件版
 本版本的能力
 - 首页、四城记忆、分析实验室的全部地图与图表可用。
 - 九城建成区卷帘、测地面积、PostGIS 缓冲区的等价计算由本地 Turf.js 测地引擎完成。
+- 分析实验室「3D 建筑演化」模块可用：OpenStreetMap 逐栋真实轮廓（© OpenStreetMap contributors，ODbL）× AUE 建成区年代分层，1:1 米高度、累计/新增时间轴与播放。
 - 地图统一使用天地图在线底图（GS(2023)336号），缩放上限锁定至原生最高瓦片级（需联网加载底图瓦片）。
 
 本地版不启用的部分
@@ -111,7 +129,8 @@ fs.writeFileSync(path.join(OUT, 'README.txt'), `山海新篇 · 本地文件版
 - 完整全栈版本的启动方式见项目根目录 README 与 server/ 目录。
 
 数据与脚本
-- 所有 JSON / GeoJSON 已内嵌到 js/local-data-*.js，避免 file:// 的 fetch 限制。
+- 常规 JSON / GeoJSON 已内嵌到 js/local-data-*.js，避免 file:// 的 fetch 限制。
+- 九城建筑轮廓体积较大，放在 data/buildings/*.geojson.js，首次用到某座城市时才注入该片，不会在打开页面时全部读入。
 - 页面逻辑已打包到 js/*.bundle.js，避免 file:// 的 ES Module 限制。
 `, 'utf8');
 

@@ -23,7 +23,7 @@
 | **空间数据库层** | **PostgreSQL 18 + PostGIS 3.x** (`webgis_history`) | 存储 5 张空间表（`heritage_sites`、`reform_events`、`cities`、`urban_builtup`、`china_provinces`），全部建立 `GIST` 空间索引；提供 `ST_Buffer(geography)`、`ST_DWithin`、`ST_UnaryUnion`、`ST_Difference`、`ST_Area(geography)` 与省域空间连接视图 `v_province_spatial_stats` |
 | **GIS 服务器层** | **GeoServer 2.27** (`workspace: webgis`, `store: postgis_history`) + 内置 OGC 网关 | 发布标准 **OGC WMS / WFS** 服务（`webgis:heritage_sites`、`webgis:reform_events`、`webgis:urban_builtup`、`webgis:china_provinces`），支持 `GetCapabilities` 与 `GetFeature` GeoJSON 矢量流 |
 | **Web 后端层** | **Node.js 原生空间后端** (`server/server.cjs` + `server/pg-wire.cjs`) | 零外部依赖直连 PostGIS Wire Protocol v3，提供 RESTful 空间分析接口（`/api/spatial/buffer`、`/api/spatial/builtup`、`/api/spatial/provinces-stats`、`/api/heritage` CRUD）及 GeoServer 反向代理与离线降级兜底 |
-| **Web 前端层** | 原生 HTML5 / CSS3 / **ES Module** + **MapLibre GL JS** + **Turf.js 6.5** + **ECharts 5.5** | 国家地理信息公共服务平台「天地图」在线矢量底图（`vec_w` + `cva_w`，审图号 GS(2023)336号），严格锁定原生最高级别 Z17 防止空白瓦片；交互式测地距离/面积量算工具、四城遗产/改革事件图层联动、人口/GDP 双轴图表 |
+| **Web 前端层** | 原生 HTML5 / CSS3 / **ES Module** + **MapLibre GL JS**（含 `fill-extrusion` 三维建筑轮廓与两级 LOD）+ **Turf.js 6.5** + **ECharts 5.5** | 国家地理信息公共服务平台「天地图」在线矢量底图（`vec_w` + `cva_w`，审图号 GS(2023)336号），严格锁定原生最高级别 Z17 防止空白瓦片；交互式测地距离/面积量算工具、四城遗产/改革事件图层联动、人口/GDP 双轴图表 |
 
 ---
 
@@ -54,10 +54,14 @@ http://127.0.0.1:8000/
 ### 方式三：本地文件版（无需服务器，适合提交）
 
 ```bash
-node scripts/build-local.cjs
+node scripts/build-local.cjs          # 生成自包含的 local/ 目录
+python scripts/package_local.py       # 打成提交用 ZIP：山海新篇-本地文件版.zip
+node scripts/verify-local.cjs         # file:// 断言
+python scripts/unpack_local.py        # 把 ZIP 解压到 test-results/zipcheck
+LOCAL_DIR=test-results/zipcheck node scripts/verify-local.cjs   # 对解压副本再跑一遍同样的断言
 ```
 
-生成自包含的 `local/` 目录。直接双击 `local/index.html`（或 `打开本地版.bat`）即可在 Chrome/Edge 中查看，不需要 Node、PostGIS 或 GeoServer。该版本把 JSON/GeoJSON 内嵌为本地数据注册表、把页面逻辑打包为经典脚本，绕过 `file://` 对 ES Module 与 `fetch` 的限制；建成区与缓冲区分析由 Turf.js 完成，GeoServer 在线入库/WFS 模块会明确标注并禁用。
+生成自包含的 `local/` 目录。直接双击 `local/index.html`（或 `打开本地版.bat`）即可在 Chrome/Edge 中查看，不需要 Node、PostGIS 或 GeoServer。该版本把常规 JSON/GeoJSON 内嵌为本地数据注册表、把页面逻辑打包为经典脚本，绕过 `file://` 对 ES Module 与 `fetch` 的限制；九城建筑轮廓体积大，单独切成 `data/buildings/*.geojson.js` 分片，首次用到某座城市时才注入。建成区与缓冲区分析由 Turf.js 完成，GeoServer 在线入库/WFS 模块会明确标注并禁用。
 
 ---
 
@@ -90,14 +94,15 @@ webgis-history/
 │   ├── charts.js           # ECharts 墨色/珊瑚/淡紫数据主题（折线/面积、柱状、人口+GDP双轴图）
 │   ├── cities.js           # 四城记忆页逻辑
 │   └── analysis.js         # 三大 GIS 实验室前端逻辑（含多边形合并内存缓存与带图弹窗）
-├── _archive/               # 归档历史与离线底图备份文件
+├── _archive/               # 已下线页面/模块的归档（含 2026-11-06 作废的 GHSL 体块版产物与旧截图）
 ├── data/                   # 空间与统计数据集
 │   ├── heritage.geojson    # 34 处历史文化遗产（四城重点全覆盖，配有真实照片与史料出处）
 │   ├── reform-events.json  # 32 起改革开放关键空间事件（1978–2020，沿海开放城市精准至开发区/港区）
 │   ├── cities.json         # 深圳/上海/广州/厦门四城元信息与大事记
 │   ├── city-statistics.json# 四城 1980–2020 人口与 GDP 统计序列（附权威统计年鉴出处）
 │   ├── china-provinces.geojson # 中国省级行政区划（WGS84）
-│   └── urban-expansion/    # 九城多时期建成区轮廓（1990/2000/2014，AUE 遥感真实解译）
+│   ├── urban-expansion/    # 九城多时期建成区轮廓（1990/2000/2014，AUE 遥感真实解译）
+│   └── buildings/          # 九城 OSM 逐栋建筑轮廓（全量 + 概览 LOD 层）与 windows/meta（© OSM, ODbL）
 ├── vendor/                 # 本地第三方库（MapLibre GL / ECharts / Turf.js）
 ├── assets/                 # 本地化遗产与城市实景照片（附 credits.json）
 └── scripts/                # 数据生成与 Playwright 自动化测试套件
@@ -111,6 +116,12 @@ webgis-history/
    - 覆盖**深圳、上海、广州、厦门、北京、杭州、武汉、成都、青岛**九座都会（1990 / 2000 / 2014 三期）；
    - 先通过 `PostGIS ST_UnaryUnion` / `turf.union` 合并同一年份多斑块消除重叠（带内存级缓存，切换秒响应），再以 `ST_Area(geom::geography)` / `turf.area` 计算球面测地面积；
    - 通过 `ST_Difference` / `turf.difference` 提取新增建成区空间分布（右图金色高亮层，支持图层面板一键显隐）。
+   - **模块一附加 · 九城建筑三维演化（OSM 真实轮廓 × 建成区年代分层）**：
+     - 轮廓来自 Overpass `way[building]`（**© OpenStreetMap contributors，ODbL**），九城核心区合计 **103,830 栋**逐栋真实底面，MapLibre `fill-extrusion` 按 **1:1 米**高度渲染，无垂直夸张。
+     - 每栋楼按其底面质心**首次落入 AUE 建成区**的时相归入 1990 / 2000 / 2014 / 现状四个年代层；时间轴支持累计显示、只看新增与自动播放。年代是推断层，**不是竣工年份**。
+     - 模块头部自带「3D 城市」下拉（九城），可在长页底部就近切换且**不重载上方卷帘模块**；顶部「城市」下拉变化时仍会联动本模块。
+     - 高度依次取 `height` 标签 → `building:levels`×3.2m → 同城同年代同类型中位数 → 同年代中位数 → 8m 兜底，四级来源占比在读数条实时公开。
+     - 性能采用**两级 LOD**：默认远景只画概览层（每 0.0013°≈133×145 m 网格保留最高一栋，各城 1,393–4,921 栋，为全量 22–34%），逐栋全量层的接管阈值 = 相机层级 + 1.4（随城市与屏宽浮动），层级状态实时提示。渲染开销上还做了四件事：楼体不透明渲染开深度写入（免半透明混合）、GeoJSON 瓦片 buffer 128→24/16（楼不再在相邻瓦片重复上传）、高分屏 pixelRatio 封顶 1.5 且 dpr>1.25 关 MSAA、连续旋转时 LOD 提示条按需重写；软件渲染实测出厂配置 24.9–32.2 fps（默认相机，优化前 14.2–21.8），强开全量对照从 4.9–8.9 提升到 10.4–18.0 fps。另带**自适应降级**保险：细节层交互帧时中位 ≥150ms 自动上调阈值回概览层并披露（`scripts/verify-3d.cjs` 注入样本断言）。切换城市时底图瓦片可能整批被天地图限流（429）拒掉且 MapLibre 不自动重发，现已收口：栅格请求走 `tdtQ://` 节流协议（并发 6 + 退避重试 3 次），切城相机到位后 `repairBasemapTiles` 对未拉到的瓦片源补载一轮；tk 配额整日耗尽（持续 429）时自动降级到**多源开源备用链**（Esri 灰底 Canvas → OSM-FR HOT → OSM 官方标准瓦片，采样探测可达性后启用当前档并在横幅披露署名，配额恢复自动切回），见 `scripts/verify-fallback.cjs`（详见 `docs/test-records.md` 页首说明）。年代切换/播放时新增**生长动画**：新揭楼群按"建成区中心向外"从地面长到 1:1 真实高度（`feature-state` 分波写入 + 波次节拍，帧时封顶，读数与数据不变），超出上限 2,600 栋的楼群直接满高出现（`docs/test-records.md` 2.0d.2）。单城全量上限 20,000 栋，超出按底面积优先抽稀并在界面披露。
 2. **PostGIS 缓冲区与古今要素共现检索 (`pages/analysis.html` 模块二)**：
    - 支持预设城市或**直接点击地图任意位置**作为中心点，自由选择 30–250 km 缓冲半径；
    - 后端执行 `ST_Buffer(geog, r)` 与 `ST_DWithin`、`ST_Distance`，返回精确测地缓冲面及圈内命中的历史文化遗产与改革开放事件距离明细表，用于观察空间共现关系，不直接推断历史因果，并展示对应的 **PostGIS Spatial SQL**。

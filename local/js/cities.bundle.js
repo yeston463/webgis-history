@@ -52,9 +52,37 @@
     }
     return String(url).split("?")[0].replace(/^(\.\.\/|\.\/)+/, "");
   }
+  var _chunkPromises = /* @__PURE__ */ new Map();
+  function ensureLocalChunk(key) {
+    if (!window.__LOCAL_DATA__) window.__LOCAL_DATA__ = {};
+    if (Object.prototype.hasOwnProperty.call(window.__LOCAL_DATA__, key)) return Promise.resolve(true);
+    if (_chunkPromises.has(key)) return _chunkPromises.get(key);
+    const prefix = location.pathname.includes("/pages/") ? "../" : "";
+    const p = new Promise((resolve) => {
+      const script = document.createElement("script");
+      let settled = false;
+      const finish = (ok) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        _chunkPromises.delete(key);
+        resolve(ok);
+      };
+      const timer = setTimeout(() => finish(false), 3e4);
+      script.onload = () => finish(true);
+      script.onerror = () => finish(false);
+      script.src = prefix + key + ".js";
+      document.head.appendChild(script);
+    });
+    _chunkPromises.set(key, p);
+    return p;
+  }
   async function fetchJSON(url, { signal, noCache = false } = {}) {
     if (!noCache && _cache.has(url)) return _cache.get(url);
     const key = localDataKey(url);
+    if (window.__LOCAL_FILE_BUILD__ && !Object.prototype.hasOwnProperty.call(window.__LOCAL_DATA__ || {}, key)) {
+      await ensureLocalChunk(key);
+    }
     if (window.__LOCAL_DATA__ && Object.prototype.hasOwnProperty.call(window.__LOCAL_DATA__, key)) {
       const data2 = window.__LOCAL_DATA__[key];
       if (!noCache) _cache.set(url, data2);
@@ -247,6 +275,7 @@
   }
 
   // js/basemap.js
+  var BASE_ONLINE_LAYERS = ["tdt-vec", "tdt-cva"];
   var TDT_VEC_PAINT = {
     "raster-opacity": 0.9,
     "raster-saturation": -0.56,
@@ -261,7 +290,348 @@
   };
   function tdtTiles(layer) {
     const subs = ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7"];
-    return subs.map((s) => `https://${s}.tianditu.gov.cn/${layer}/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${layer.split("_")[0]}&STYLE=default&TILEMATRIXSET=w&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=tiles&tk=${TIANDITU_TK}`);
+    return subs.map((s) => `tdtQ://${encodeURIComponent(`https://${s}.tianditu.gov.cn/${layer}/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${layer.split("_")[0]}&STYLE=default&TILEMATRIXSET=w&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=tiles&tk=${TIANDITU_TK}`)}`);
+  }
+  var TDT_SCHEME = "tdtQ";
+  var TDT_MAX_CONCURRENT = 6;
+  var TDT_RETRY_MAX = 3;
+  var TDT_RETRY_BASE_MS = 700;
+  var TDT_QUEUE_MAX = 128;
+  var tdtActive = 0;
+  var tdtQueue = [];
+  function abortErr() {
+    return new DOMException("Aborted", "AbortError");
+  }
+  function tdtEnqueue(task, signal) {
+    return new Promise((resolve, reject) => {
+      if (signal && signal.aborted) return reject(abortErr());
+      if (tdtQueue.length >= TDT_QUEUE_MAX) {
+        const qe = new Error("tdt queue overflow");
+        qe.status = 429;
+        return reject(qe);
+      }
+      const job = { task, done: false };
+      job.cancel = () => {
+        if (job.done) return;
+        const idx = tdtQueue.indexOf(job);
+        if (idx >= 0) tdtQueue.splice(idx, 1);
+        job.done = true;
+        job.cleanup();
+        reject(abortErr());
+      };
+      job.cleanup = () => {
+        if (signal) Signal_remove(signal, job.cancel);
+      };
+      job.settle = (err, value) => {
+        if (job.done) return;
+        job.done = true;
+        tdtActive = Math.max(0, tdtActive - 1);
+        job.cleanup();
+        err ? reject(err) : resolve(value);
+        pumpTdt();
+      };
+      if (signal) signal.addEventListener("abort", job.cancel, { once: true });
+      tdtQueue.push(job);
+      pumpTdt();
+    });
+  }
+  function Signal_remove(signal, fn) {
+    if (signal && typeof signal.removeEventListener === "function") signal.removeEventListener("abort", fn);
+  }
+  function pumpTdt() {
+    while (tdtActive < TDT_MAX_CONCURRENT && tdtQueue.length) {
+      const job = tdtQueue.shift();
+      tdtActive += 1;
+      Promise.resolve().then(() => job.task()).then(
+        (v) => job.settle(null, v),
+        (e) => job.settle(e)
+      );
+    }
+  }
+  async function tdtLoadProtocol(params, abortController) {
+    const real = decodeURIComponent(String(params.url || "").slice((TDT_SCHEME + "://").length));
+    const signal = abortController ? abortController.signal : void 0;
+    for (let attempt = 0; ; attempt++) {
+      let buf;
+      try {
+        if (signal && signal.aborted) throw abortErr();
+        buf = await tdtEnqueue(async () => {
+          const r = await fetch(real, { signal, credentials: "omit", referrerPolicy: "no-referrer-when-downgrade" });
+          if (!r.ok) {
+            const err = new Error("tianditu " + r.status);
+            err.status = r.status;
+            throw err;
+          }
+          return r.arrayBuffer();
+        }, signal);
+        if (!buf.byteLength) {
+          const err = new Error("tianditu empty");
+          err.status = 502;
+          throw err;
+        }
+        noteTdtResult(true);
+        return { data: buf };
+      } catch (err) {
+        if (signal && signal.aborted) throw abortErr();
+        const status = err && err.status;
+        const retriable = attempt < TDT_RETRY_MAX && (status === 429 || status >= 500 && status <= 599 || status === void 0);
+        if (status === void 0 || status >= 400 && status <= 599 || status === 429) noteTdtResult(false);
+        if (!retriable) throw err;
+        await new Promise((r) => setTimeout(r, TDT_RETRY_BASE_MS * Math.pow(2, attempt)));
+      }
+    }
+  }
+  function registerTdtProtocol() {
+    if (typeof maplibregl === "undefined" || typeof maplibregl.addProtocol !== "function") return;
+    if (maplibregl.__wbTdtThrottled) return;
+    maplibregl.__wbTdtThrottled = true;
+    maplibregl.addProtocol(TDT_SCHEME, tdtLoadProtocol);
+  }
+  registerTdtProtocol();
+  var TDT_STALL_FAILS = 8;
+  var TDT_STALL_WINDOW_MS = 1e4;
+  var TDT_RECOVER_PROBES = 2;
+  var TDT_PROBE_INTERVAL_MS = 6e4;
+  var WB_FALLBACK_CHAIN = [
+    {
+      id: "wb-esr",
+      label: "Esri \u7070\u5E95 Canvas",
+      attr: "\xA9 Esri \xB7 World Light Gray Canvas",
+      tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}"],
+      maxzoom: 16,
+      probe: { z: 9, y: 223, x: 419 }
+    },
+    {
+      id: "wb-hot",
+      label: "OSM FR HOT \u74E6\u7247",
+      attr: "\xA9 OpenStreetMap contributors \xB7 \u98CE\u683C HOT\uFF08Humanitarian OSM Team\uFF09via openstreetmap.fr",
+      tiles: ["a", "b", "c"].map((s) => `https://${s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png`),
+      maxzoom: 19,
+      probe: { z: 9, y: 223, x: 419 }
+    },
+    {
+      id: "wb-osm",
+      label: "OSM \u5B98\u65B9\u6807\u51C6\u74E6\u7247",
+      attr: "\xA9 OpenStreetMap contributors",
+      tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+      maxzoom: 19,
+      probe: { z: 9, y: 223, x: 419 }
+    }
+  ];
+  var WB_FALLBACK_PAINT = { "raster-opacity": 0.92, "raster-saturation": -0.35, "raster-contrast": -0.03 };
+  var TDT_FALLBACK_TIMEOUT_MS = 3e3;
+  var basemapWatchers = /* @__PURE__ */ new Set();
+  var tdtHealth = { fails: [], swapped: false, probeWins: 0, probeTimer: null, chainIdx: 0 };
+  function wbFallbackSourceId(idx) {
+    return WB_FALLBACK_CHAIN[idx].id;
+  }
+  function wbProbeUrl(item) {
+    return item.tiles[0].replace("{z}", item.probe ? item.probe.z : 5).replace("{x}", item.probe ? item.probe.x : 13).replace("{y}", item.probe ? item.probe.y : 6);
+  }
+  function pickFallbackIdx() {
+    return new Promise((resolve) => {
+      let done = false;
+      const finish = (i) => {
+        if (!done) {
+          done = true;
+          resolve(i);
+        }
+      };
+      WB_FALLBACK_CHAIN.forEach((item, i) => {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), TDT_FALLBACK_TIMEOUT_MS);
+        fetch(wbProbeUrl(item), { signal: ctrl.signal, credentials: "omit", referrerPolicy: "no-referrer-when-downgrade" }).then((res) => {
+          clearTimeout(timer);
+          const ct = res.headers.get("content-type") || "";
+          if (res.ok && ct.indexOf("image/") === 0) finish(i);
+        }).catch(() => clearTimeout(timer));
+      });
+      setTimeout(() => finish(0), TDT_FALLBACK_TIMEOUT_MS + 120);
+    });
+  }
+  function ensureFallbackSources(map2) {
+    const anchor = ["bu3d-city-ov", "bu3d-city", "tdt-vec", "tdt-cva"].find((id) => map2.getLayer(id)) || void 0;
+    for (const item of WB_FALLBACK_CHAIN) {
+      if (!map2.getSource(item.id)) {
+        map2.addSource(item.id, {
+          type: "raster",
+          tiles: item.tiles,
+          tileSize: 256,
+          minzoom: 0,
+          maxzoom: item.maxzoom,
+          attribution: item.attr
+        });
+      }
+      if (!map2.getLayer(item.id)) {
+        map2.addLayer({ id: item.id, type: "raster", source: item.id, paint: WB_FALLBACK_PAINT, layout: { visibility: "none" } }, anchor);
+      }
+    }
+  }
+  function swapMapBasemap(map2, on) {
+    ensureFallbackSources(map2);
+    for (const item of WB_FALLBACK_CHAIN) {
+      if (map2.getLayer(item.id)) {
+        const want = on && item.id === wbFallbackSourceId(tdtHealth.chainIdx) ? "visible" : "none";
+        map2.setLayoutProperty(item.id, "visibility", want);
+      }
+    }
+    for (const id of BASE_ONLINE_LAYERS) {
+      if (map2.getLayer(id)) map2.setLayoutProperty(id, "visibility", on ? "none" : "visible");
+    }
+  }
+  function announceFallback(on, detail) {
+    try {
+      document.dispatchEvent(new CustomEvent("wb-basemap-fallback", { detail: Object.assign({ fallback: on }, detail || {}) }));
+    } catch (e) {
+    }
+  }
+  function flushTdtQueue(reason) {
+    if (!tdtQueue.length) return;
+    const queued = tdtQueue.splice(0, tdtQueue.length);
+    for (const job of queued) {
+      try {
+        job.cancel();
+      } catch (e) {
+      }
+    }
+  }
+  function wbTileUrl(item, z, x, y) {
+    return item.tiles[(x + y) % item.tiles.length].replace("{z}", z).replace("{x}", x).replace("{y}", y);
+  }
+  function wbViewportTileUrls(map2, item) {
+    const urls = [];
+    try {
+      const z = Math.max(2, Math.min(item.maxzoom, Math.ceil(Math.max(0, map2.getZoom()))));
+      const c = map2.getCenter();
+      const lat = Math.max(-85, Math.min(85, c.lat));
+      const n = 1 << z;
+      const xt = Math.floor((c.lng + 180) / 360 * n);
+      const s = Math.sin(lat * Math.PI / 180);
+      const yt = Math.floor((0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * n);
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const x = xt + dx, y = yt + dy;
+          if (x < 0 || y < 0 || x >= n || y >= n) continue;
+          urls.push(wbTileUrl(item, z, x, y));
+        }
+      }
+    } catch (e) {
+    }
+    return urls;
+  }
+  async function warmViewportTiles(item) {
+    const jobs = [];
+    for (const map2 of basemapWatchers) {
+      for (const url of wbViewportTileUrls(map2, item)) {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 4e3);
+        jobs.push(fetch(url, { signal: ctrl.signal, credentials: "omit", referrerPolicy: "no-referrer-when-downgrade" }).catch(() => {
+        }).finally(() => clearTimeout(timer)));
+      }
+    }
+    if (!jobs.length) return;
+    const cap = new Promise((r) => setTimeout(r, 3e3));
+    await Promise.race([Promise.allSettled(jobs), cap]);
+  }
+  async function swapToFallback() {
+    flushTdtQueue("fallback");
+    let idx = 0;
+    try {
+      idx = await pickFallbackIdx();
+    } catch (e) {
+    }
+    tdtHealth.chainIdx = idx;
+    await warmViewportTiles(WB_FALLBACK_CHAIN[idx]).catch(() => {
+    });
+    for (const map2 of basemapWatchers) {
+      try {
+        swapMapBasemap(map2, true);
+      } catch (e) {
+      }
+    }
+    const item = WB_FALLBACK_CHAIN[tdtHealth.chainIdx];
+    announceFallback(true, { name: item.label, attr: item.attr });
+  }
+  function startRecoveryProbe() {
+    if (tdtHealth.probeTimer) return;
+    tdtHealth.probeWins = 0;
+    tdtHealth.probeTimer = setInterval(async () => {
+      try {
+        window.__tdtProbeTicks = (window.__tdtProbeTicks || 0) + 1;
+      } catch (e) {
+      }
+      if (!tdtHealth.swapped) {
+        stopRecoveryProbe();
+        return;
+      }
+      if (navigator.onLine === false) return;
+      try {
+        const ok = await probeOnlineAvailable(6e3);
+        if (ok) {
+          tdtHealth.probeWins += 1;
+          if (tdtHealth.probeWins >= TDT_RECOVER_PROBES) {
+            tdtHealth.swapped = false;
+            stopRecoveryProbe();
+            for (const map2 of basemapWatchers) {
+              try {
+                swapMapBasemap(map2, false);
+              } catch (e) {
+              }
+            }
+            announceFallback(false);
+          }
+        } else {
+          tdtHealth.probeWins = 0;
+        }
+      } catch (e) {
+      }
+    }, TDT_PROBE_INTERVAL_MS);
+  }
+  function stopRecoveryProbe() {
+    if (tdtHealth.probeTimer) {
+      clearInterval(tdtHealth.probeTimer);
+      tdtHealth.probeTimer = null;
+    }
+    tdtHealth.probeWins = 0;
+  }
+  function noteTdtResult(ok) {
+    const now = Date.now();
+    if (ok) {
+      if (!tdtHealth.swapped) return;
+      return;
+    }
+    tdtHealth.fails.push(now);
+    while (tdtHealth.fails.length && now - tdtHealth.fails[0] > TDT_STALL_WINDOW_MS) tdtHealth.fails.shift();
+    if (!tdtHealth.swapped && tdtHealth.fails.length >= TDT_STALL_FAILS) {
+      tdtHealth.swapped = true;
+      swapToFallback();
+      startRecoveryProbe();
+    }
+  }
+  function watchBasemapHealth(map2) {
+    if (!map2 || basemapWatchers.has(map2)) return;
+    basemapWatchers.add(map2);
+    if (tdtHealth.swapped) {
+      try {
+        swapMapBasemap(map2, true);
+      } catch (e) {
+      }
+    }
+    const onRemove = () => {
+      basemapWatchers.delete(map2);
+      try {
+        map2.off("remove", onRemove);
+      } catch (e) {
+      }
+      if (!basemapWatchers.size) {
+        tdtHealth.swapped = false;
+        stopRecoveryProbe();
+      }
+    };
+    try {
+      map2.on("remove", onRemove);
+    } catch (e) {
+    }
   }
   function buildOnlineStyle() {
     return {
@@ -304,6 +674,7 @@
     if (!map2.getLayer("tdt-cva")) {
       map2.addLayer({ id: "tdt-cva", type: "raster", source: "tdt-cva", paint: TDT_CVA_PAINT });
     }
+    watchBasemapHealth(map2);
   }
   function bindZoomLimitControl(map2, hostEl) {
     if (!map2) return;

@@ -386,3 +386,33 @@
   .btn-sm { min-height: 36px; }
   .ro-close { width: 34px; height: 34px; }
 }
+
+/* GHSL 3D building-height module */
+@media (max-width: 1100px) {
+  .lab-3d-map { height: clamp(420px, 58vh, 560px); }
+}
+@media (max-width: 768px) {
+  .lab-3d { padding: 14px; }
+  .lab-3d-head { gap: 14px; margin-bottom: 12px; }
+  .lab-3d-title { font-size: 26px; }
+  .lab-3d-tools { width: 100%; }
+  .lab-3d-city { width: 100%; }
+  .lab-3d-city select { flex: 1 1 auto; min-width: 0; height: 44px; }
+  .lab-3d-timeline { flex: 1 1 auto; }
+  .lab-3d-timeline .btn { min-width: 0; flex: 1; }
+  .lab-3d-map { height: 58vh; min-height: 420px; }
+  .lab-3d-legend { top: 10px; left: 10px; padding: 8px 9px; font-size: 8px; gap: 4px; min-width: 150px; }
+  .lab-3d-legend-row i { width: 14px; height: 7px; }
+  .lab-3d-legend-count { padding-left: 8px; }
+  .lab-3d-hint { left: 10px; bottom: 10px; font-size: 8px; }
+  .lab-3d-stats { gap: 8px 16px; padding: 12px 0; }
+  .lab-3d-stat { min-width: 84px; }
+  .lab-3d-stat-value { font-size: 17px; }
+  .lab-3d-note { font-size: 9.5px; }
+}
+@media (max-width: 480px) {
+  .lab-3d-hint { display: none; }
+  .lab-3d-legend { font-size: 7.5px; }
+  .lab-3d-city em { display: none; }
+  #btn-3d-play { flex: 1 1 100%; }
+}

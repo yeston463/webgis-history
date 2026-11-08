@@ -52,9 +52,37 @@
     }
     return String(url).split("?")[0].replace(/^(\.\.\/|\.\/)+/, "");
   }
+  var _chunkPromises = /* @__PURE__ */ new Map();
+  function ensureLocalChunk(key) {
+    if (!window.__LOCAL_DATA__) window.__LOCAL_DATA__ = {};
+    if (Object.prototype.hasOwnProperty.call(window.__LOCAL_DATA__, key)) return Promise.resolve(true);
+    if (_chunkPromises.has(key)) return _chunkPromises.get(key);
+    const prefix = location.pathname.includes("/pages/") ? "../" : "";
+    const p = new Promise((resolve) => {
+      const script = document.createElement("script");
+      let settled = false;
+      const finish = (ok) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        _chunkPromises.delete(key);
+        resolve(ok);
+      };
+      const timer = setTimeout(() => finish(false), 3e4);
+      script.onload = () => finish(true);
+      script.onerror = () => finish(false);
+      script.src = prefix + key + ".js";
+      document.head.appendChild(script);
+    });
+    _chunkPromises.set(key, p);
+    return p;
+  }
   async function fetchJSON(url, { signal, noCache = false } = {}) {
     if (!noCache && _cache.has(url)) return _cache.get(url);
     const key = localDataKey(url);
+    if (window.__LOCAL_FILE_BUILD__ && !Object.prototype.hasOwnProperty.call(window.__LOCAL_DATA__ || {}, key)) {
+      await ensureLocalChunk(key);
+    }
     if (window.__LOCAL_DATA__ && Object.prototype.hasOwnProperty.call(window.__LOCAL_DATA__, key)) {
       const data2 = window.__LOCAL_DATA__[key];
       if (!noCache) _cache.set(url, data2);
@@ -216,8 +244,13 @@
   var TIANDITU_TILE_MAX_ZOOM = 18;
   var TIANDITU_MIN_ZOOM = 2.2;
   var TIANDITU_MAX_ZOOM = 17;
+  function tiandituTileURL(layer, z, x, y) {
+    const sub = "t" + (x + y) % 8;
+    return `https://${sub}.tianditu.gov.cn/${layer}/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${layer.split("_")[0]}&STYLE=default&TILEMATRIXSET=w&TILEMATRIX=${z}&TILEROW=${y}&TILECOL=${x}&FORMAT=tiles&tk=${TIANDITU_TK}`;
+  }
 
   // js/basemap.js
+  var BASE_ONLINE_LAYERS = ["tdt-vec", "tdt-cva"];
   var TDT_VEC_PAINT = {
     "raster-opacity": 0.9,
     "raster-saturation": -0.56,
@@ -232,7 +265,351 @@
   };
   function tdtTiles(layer) {
     const subs = ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7"];
-    return subs.map((s) => `https://${s}.tianditu.gov.cn/${layer}/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${layer.split("_")[0]}&STYLE=default&TILEMATRIXSET=w&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=tiles&tk=${TIANDITU_TK}`);
+    return subs.map((s) => `tdtQ://${encodeURIComponent(`https://${s}.tianditu.gov.cn/${layer}/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${layer.split("_")[0]}&STYLE=default&TILEMATRIXSET=w&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=tiles&tk=${TIANDITU_TK}`)}`);
+  }
+  var TDT_SCHEME = "tdtQ";
+  var TDT_MAX_CONCURRENT = 6;
+  var TDT_RETRY_MAX = 3;
+  var TDT_RETRY_BASE_MS = 700;
+  var TDT_QUEUE_MAX = 128;
+  var tdtActive = 0;
+  var tdtQueue = [];
+  function abortErr() {
+    return new DOMException("Aborted", "AbortError");
+  }
+  function tdtEnqueue(task, signal) {
+    return new Promise((resolve, reject) => {
+      if (signal && signal.aborted) return reject(abortErr());
+      if (tdtQueue.length >= TDT_QUEUE_MAX) {
+        const qe = new Error("tdt queue overflow");
+        qe.status = 429;
+        return reject(qe);
+      }
+      const job = { task, done: false };
+      job.cancel = () => {
+        if (job.done) return;
+        const idx = tdtQueue.indexOf(job);
+        if (idx >= 0) tdtQueue.splice(idx, 1);
+        job.done = true;
+        job.cleanup();
+        reject(abortErr());
+      };
+      job.cleanup = () => {
+        if (signal) Signal_remove(signal, job.cancel);
+      };
+      job.settle = (err, value) => {
+        if (job.done) return;
+        job.done = true;
+        tdtActive = Math.max(0, tdtActive - 1);
+        job.cleanup();
+        err ? reject(err) : resolve(value);
+        pumpTdt();
+      };
+      if (signal) signal.addEventListener("abort", job.cancel, { once: true });
+      tdtQueue.push(job);
+      pumpTdt();
+    });
+  }
+  function Signal_remove(signal, fn) {
+    if (signal && typeof signal.removeEventListener === "function") signal.removeEventListener("abort", fn);
+  }
+  function pumpTdt() {
+    while (tdtActive < TDT_MAX_CONCURRENT && tdtQueue.length) {
+      const job = tdtQueue.shift();
+      tdtActive += 1;
+      Promise.resolve().then(() => job.task()).then(
+        (v) => job.settle(null, v),
+        (e) => job.settle(e)
+      );
+    }
+  }
+  async function tdtLoadProtocol(params, abortController) {
+    const real = decodeURIComponent(String(params.url || "").slice((TDT_SCHEME + "://").length));
+    const signal = abortController ? abortController.signal : void 0;
+    for (let attempt = 0; ; attempt++) {
+      let buf;
+      try {
+        if (signal && signal.aborted) throw abortErr();
+        buf = await tdtEnqueue(async () => {
+          const r = await fetch(real, { signal, credentials: "omit", referrerPolicy: "no-referrer-when-downgrade" });
+          if (!r.ok) {
+            const err = new Error("tianditu " + r.status);
+            err.status = r.status;
+            throw err;
+          }
+          return r.arrayBuffer();
+        }, signal);
+        if (!buf.byteLength) {
+          const err = new Error("tianditu empty");
+          err.status = 502;
+          throw err;
+        }
+        noteTdtResult(true);
+        return { data: buf };
+      } catch (err) {
+        if (signal && signal.aborted) throw abortErr();
+        const status = err && err.status;
+        const retriable = attempt < TDT_RETRY_MAX && (status === 429 || status >= 500 && status <= 599 || status === void 0);
+        if (status === void 0 || status >= 400 && status <= 599 || status === 429) noteTdtResult(false);
+        if (!retriable) throw err;
+        await new Promise((r) => setTimeout(r, TDT_RETRY_BASE_MS * Math.pow(2, attempt)));
+      }
+    }
+  }
+  function registerTdtProtocol() {
+    if (typeof maplibregl === "undefined" || typeof maplibregl.addProtocol !== "function") return;
+    if (maplibregl.__wbTdtThrottled) return;
+    maplibregl.__wbTdtThrottled = true;
+    maplibregl.addProtocol(TDT_SCHEME, tdtLoadProtocol);
+  }
+  registerTdtProtocol();
+  var TDT_STALL_FAILS = 8;
+  var TDT_STALL_WINDOW_MS = 1e4;
+  var TDT_RECOVER_PROBES = 2;
+  var TDT_PROBE_INTERVAL_MS = 6e4;
+  var WB_FALLBACK_CHAIN = [
+    {
+      id: "wb-esr",
+      label: "Esri \u7070\u5E95 Canvas",
+      attr: "\xA9 Esri \xB7 World Light Gray Canvas",
+      tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}"],
+      maxzoom: 16,
+      probe: { z: 9, y: 223, x: 419 }
+    },
+    {
+      id: "wb-hot",
+      label: "OSM FR HOT \u74E6\u7247",
+      attr: "\xA9 OpenStreetMap contributors \xB7 \u98CE\u683C HOT\uFF08Humanitarian OSM Team\uFF09via openstreetmap.fr",
+      tiles: ["a", "b", "c"].map((s) => `https://${s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png`),
+      maxzoom: 19,
+      probe: { z: 9, y: 223, x: 419 }
+    },
+    {
+      id: "wb-osm",
+      label: "OSM \u5B98\u65B9\u6807\u51C6\u74E6\u7247",
+      attr: "\xA9 OpenStreetMap contributors",
+      tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+      maxzoom: 19,
+      probe: { z: 9, y: 223, x: 419 }
+    }
+  ];
+  var WB_FALLBACK_PAINT = { "raster-opacity": 0.92, "raster-saturation": -0.35, "raster-contrast": -0.03 };
+  var TDT_FALLBACK_TIMEOUT_MS = 3e3;
+  var basemapWatchers = /* @__PURE__ */ new Set();
+  var tdtHealth = { fails: [], swapped: false, probeWins: 0, probeTimer: null, chainIdx: 0 };
+  function wbFallbackSourceId(idx) {
+    return WB_FALLBACK_CHAIN[idx].id;
+  }
+  function wbProbeUrl(item) {
+    return item.tiles[0].replace("{z}", item.probe ? item.probe.z : 5).replace("{x}", item.probe ? item.probe.x : 13).replace("{y}", item.probe ? item.probe.y : 6);
+  }
+  function pickFallbackIdx() {
+    return new Promise((resolve) => {
+      let done = false;
+      const finish = (i) => {
+        if (!done) {
+          done = true;
+          resolve(i);
+        }
+      };
+      WB_FALLBACK_CHAIN.forEach((item, i) => {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), TDT_FALLBACK_TIMEOUT_MS);
+        fetch(wbProbeUrl(item), { signal: ctrl.signal, credentials: "omit", referrerPolicy: "no-referrer-when-downgrade" }).then((res) => {
+          clearTimeout(timer);
+          const ct = res.headers.get("content-type") || "";
+          if (res.ok && ct.indexOf("image/") === 0) finish(i);
+        }).catch(() => clearTimeout(timer));
+      });
+      setTimeout(() => finish(0), TDT_FALLBACK_TIMEOUT_MS + 120);
+    });
+  }
+  function ensureFallbackSources(map2) {
+    const anchor = ["bu3d-city-ov", "bu3d-city", "tdt-vec", "tdt-cva"].find((id) => map2.getLayer(id)) || void 0;
+    for (const item of WB_FALLBACK_CHAIN) {
+      if (!map2.getSource(item.id)) {
+        map2.addSource(item.id, {
+          type: "raster",
+          tiles: item.tiles,
+          tileSize: 256,
+          minzoom: 0,
+          maxzoom: item.maxzoom,
+          attribution: item.attr
+        });
+      }
+      if (!map2.getLayer(item.id)) {
+        map2.addLayer({ id: item.id, type: "raster", source: item.id, paint: WB_FALLBACK_PAINT, layout: { visibility: "none" } }, anchor);
+      }
+    }
+  }
+  function swapMapBasemap(map2, on) {
+    ensureFallbackSources(map2);
+    for (const item of WB_FALLBACK_CHAIN) {
+      if (map2.getLayer(item.id)) {
+        const want = on && item.id === wbFallbackSourceId(tdtHealth.chainIdx) ? "visible" : "none";
+        map2.setLayoutProperty(item.id, "visibility", want);
+      }
+    }
+    for (const id of BASE_ONLINE_LAYERS) {
+      if (map2.getLayer(id)) map2.setLayoutProperty(id, "visibility", on ? "none" : "visible");
+    }
+  }
+  function announceFallback(on, detail) {
+    try {
+      document.dispatchEvent(new CustomEvent("wb-basemap-fallback", { detail: Object.assign({ fallback: on }, detail || {}) }));
+    } catch (e) {
+    }
+  }
+  function flushTdtQueue(reason) {
+    if (!tdtQueue.length) return;
+    const queued = tdtQueue.splice(0, tdtQueue.length);
+    for (const job of queued) {
+      try {
+        job.cancel();
+      } catch (e) {
+      }
+    }
+  }
+  function wbTileUrl(item, z, x, y) {
+    return item.tiles[(x + y) % item.tiles.length].replace("{z}", z).replace("{x}", x).replace("{y}", y);
+  }
+  function wbViewportTileUrls(map2, item) {
+    const urls = [];
+    try {
+      const z = Math.max(2, Math.min(item.maxzoom, Math.ceil(Math.max(0, map2.getZoom()))));
+      const c = map2.getCenter();
+      const lat = Math.max(-85, Math.min(85, c.lat));
+      const n = 1 << z;
+      const xt = Math.floor((c.lng + 180) / 360 * n);
+      const s = Math.sin(lat * Math.PI / 180);
+      const yt = Math.floor((0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * n);
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const x = xt + dx, y = yt + dy;
+          if (x < 0 || y < 0 || x >= n || y >= n) continue;
+          urls.push(wbTileUrl(item, z, x, y));
+        }
+      }
+    } catch (e) {
+    }
+    return urls;
+  }
+  async function warmViewportTiles(item) {
+    const jobs = [];
+    for (const map2 of basemapWatchers) {
+      for (const url of wbViewportTileUrls(map2, item)) {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 4e3);
+        jobs.push(fetch(url, { signal: ctrl.signal, credentials: "omit", referrerPolicy: "no-referrer-when-downgrade" }).catch(() => {
+        }).finally(() => clearTimeout(timer)));
+      }
+    }
+    if (!jobs.length) return;
+    const cap = new Promise((r) => setTimeout(r, 3e3));
+    await Promise.race([Promise.allSettled(jobs), cap]);
+  }
+  async function swapToFallback() {
+    flushTdtQueue("fallback");
+    let idx = 0;
+    try {
+      idx = await pickFallbackIdx();
+    } catch (e) {
+    }
+    tdtHealth.chainIdx = idx;
+    await warmViewportTiles(WB_FALLBACK_CHAIN[idx]).catch(() => {
+    });
+    for (const map2 of basemapWatchers) {
+      try {
+        swapMapBasemap(map2, true);
+      } catch (e) {
+      }
+    }
+    const item = WB_FALLBACK_CHAIN[tdtHealth.chainIdx];
+    announceFallback(true, { name: item.label, attr: item.attr });
+  }
+  function startRecoveryProbe() {
+    if (tdtHealth.probeTimer) return;
+    tdtHealth.probeWins = 0;
+    tdtHealth.probeTimer = setInterval(async () => {
+      try {
+        window.__tdtProbeTicks = (window.__tdtProbeTicks || 0) + 1;
+      } catch (e) {
+      }
+      if (!tdtHealth.swapped) {
+        stopRecoveryProbe();
+        return;
+      }
+      if (navigator.onLine === false) return;
+      try {
+        const ok = await probeOnlineAvailable(6e3);
+        if (ok) {
+          tdtHealth.probeWins += 1;
+          if (tdtHealth.probeWins >= TDT_RECOVER_PROBES) {
+            tdtHealth.swapped = false;
+            stopRecoveryProbe();
+            for (const map2 of basemapWatchers) {
+              try {
+                swapMapBasemap(map2, false);
+              } catch (e) {
+              }
+            }
+            announceFallback(false);
+          }
+        } else {
+          tdtHealth.probeWins = 0;
+        }
+      } catch (e) {
+      }
+    }, TDT_PROBE_INTERVAL_MS);
+  }
+  function stopRecoveryProbe() {
+    if (tdtHealth.probeTimer) {
+      clearInterval(tdtHealth.probeTimer);
+      tdtHealth.probeTimer = null;
+    }
+    tdtHealth.probeWins = 0;
+  }
+  function noteTdtResult(ok) {
+    const now = Date.now();
+    if (ok) {
+      if (!tdtHealth.swapped) return;
+      return;
+    }
+    tdtHealth.fails.push(now);
+    while (tdtHealth.fails.length && now - tdtHealth.fails[0] > TDT_STALL_WINDOW_MS) tdtHealth.fails.shift();
+    if (!tdtHealth.swapped && tdtHealth.fails.length >= TDT_STALL_FAILS) {
+      tdtHealth.swapped = true;
+      swapToFallback();
+      startRecoveryProbe();
+    }
+  }
+  function watchBasemapHealth(map2) {
+    if (!map2 || basemapWatchers.has(map2)) return;
+    basemapWatchers.add(map2);
+    if (tdtHealth.swapped) {
+      try {
+        swapMapBasemap(map2, true);
+      } catch (e) {
+      }
+    }
+    const onRemove = () => {
+      basemapWatchers.delete(map2);
+      try {
+        map2.off("remove", onRemove);
+      } catch (e) {
+      }
+      if (!basemapWatchers.size) {
+        tdtHealth.swapped = false;
+        stopRecoveryProbe();
+      }
+    };
+    try {
+      map2.on("remove", onRemove);
+    } catch (e) {
+    }
+  }
+  function basemapFallbackActive() {
+    return tdtHealth.swapped;
   }
   function buildOnlineStyle() {
     return {
@@ -275,6 +652,7 @@
     if (!map2.getLayer("tdt-cva")) {
       map2.addLayer({ id: "tdt-cva", type: "raster", source: "tdt-cva", paint: TDT_CVA_PAINT });
     }
+    watchBasemapHealth(map2);
   }
   function bindZoomLimitControl(map2, hostEl) {
     if (!map2) return;
@@ -312,6 +690,48 @@
     const z = map2.getZoom();
     const maxZ = typeof map2.getMaxZoom === "function" ? map2.getMaxZoom() : TIANDITU_MAX_ZOOM;
     return z >= maxZ - 0.01 ? `${z.toFixed(2)} (\u4E0A\u9650)` : z.toFixed(2);
+  }
+  function repairBasemapTiles(map2) {
+    if (!map2 || map2._wbRemoved || typeof map2.isStyleLoaded !== "function") return;
+    if (basemapFallbackActive()) return;
+    let once = 0;
+    const attempt = () => {
+      if (!map2 || map2._wbRemoved) return;
+      let reloaded = false;
+      try {
+        const caches = map2.style && map2.style.sourceCaches || {};
+        for (const id of BASE_ONLINE_LAYERS) {
+          const c = caches[id];
+          if (!c || typeof c.reload !== "function" || typeof c.loaded !== "function") continue;
+          if (!c.loaded()) {
+            try {
+              c.reload();
+              reloaded = true;
+            } catch (e) {
+            }
+          }
+        }
+      } catch (e) {
+      }
+      once += 1;
+      if (reloaded && once < 4) setTimeout(attempt, 2600);
+    };
+    attempt();
+  }
+  async function probeOnlineAvailable(timeoutMs = 3e3) {
+    try {
+      const url = tiandituTileURL("vec_w", 4, 12, 6);
+      const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+      const timer = ctrl ? setTimeout(() => ctrl.abort(), timeoutMs) : null;
+      const res = await fetch(url, { method: "GET", signal: ctrl ? ctrl.signal : void 0 });
+      if (timer) clearTimeout(timer);
+      if (!res.ok) return false;
+      const buf = await res.arrayBuffer();
+      const ct = res.headers.get("content-type") || "";
+      return buf.byteLength > 500 && ct.indexOf("image") !== -1;
+    } catch (e) {
+      return false;
+    }
   }
   function basemapLabel() {
     return "\u5929\u5730\u56FE \xB7 GS(2023)336\u53F7";
@@ -1972,6 +2392,24 @@ ${per.cagr == null ? "" : signed(per.cagr) + "%"}` : `${per.rate.toFixed(1)} km\
         }
       } catch (e) {
       }
+      try {
+        if (BU3D.timer) clearTimeout(BU3D.timer);
+      } catch (e) {
+      }
+      try {
+        if (map3D && !map3D._removed) {
+          map3D.remove();
+          map3D._removed = true;
+        }
+      } catch (e) {
+      }
+      try {
+        if (map3D && !map3D._removed) {
+          map3D.remove();
+          map3D._removed = true;
+        }
+      } catch (e) {
+      }
     });
     const params = new URLSearchParams(location.search);
     startCity = params.get("city") || "shenzhen";
@@ -2030,6 +2468,7 @@ ${per.cagr == null ? "" : signed(per.cagr) + "%"}` : `${per.rate.toFixed(1)} km\
     }).catch((e) => toast("\u5206\u6790\u6570\u636E\u52A0\u8F7D\u5931\u8D25\uFF1A" + e.message, "error", 4e3));
     initPostgisBufferLab();
     initOgcAndInsertPanel();
+    initBuiltup3D();
   }
   async function probeArchitectureStatus() {
     const bPg = document.getElementById("badge-pg");
@@ -2117,6 +2556,12 @@ ${per.cagr == null ? "" : signed(per.cagr) + "%"}` : `${per.rate.toFixed(1)} km\
       replaceOptions(ybSel, ys.map((y) => [String(y), String(y)]), String(ys[ys.length - 1]));
       jumpSwipeToCity(c, false);
       loadBuiltup(c, ys[0], ys[ys.length - 1], true);
+      if (BU3D.started) {
+        applyCity(c).catch(() => {
+        });
+      } else {
+        BU3D.city = c;
+      }
     });
     yaSel.querySelector("select").addEventListener("change", () => reloadA(false));
     ybSel.querySelector("select").addEventListener("change", () => reloadA(false));
@@ -3402,6 +3847,722 @@ WHERE ST_DWithin(h.geom::geography, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 432
       s.appendChild(o);
     });
   }
+  var map3D = null;
+  var BU3D = {
+    started: false,
+    city: "shenzhen",
+    year: 2014,
+    mode: "cumulative",
+    playing: false,
+    timer: null,
+    data: {},
+    overview: {},
+    meta: null,
+    current: null,
+    summaryCache: {},
+    lodZoom: 14.7,
+    // 自适应降级：细节层下交互帧时持续过低（中位 ≥150ms）时，临时上调 LOD 阈值回到概览层；
+    // 调整只在交互中生效，城市切换 / 复位视角后清零重试。autoLod=false 可整体关闭（perf 脚本用它固定行为）。
+    autoLod: true,
+    autoRaise: 0,
+    autoCool: 0,
+    // 生长动画：token 用于在换城/换年时终止在跑的动画；spawn 缓存 [城市][源][年代]→按"建成区中心
+    // 向外"排序的楼栋索引；rise 记录当前动画状态（startsWith t0/era/frames）。
+    spawn: {},
+    rise: { token: 0, active: false, t0: 0, srcId: "", chunks: [], ramp: 260, stride: 60 }
+  };
+  var B3D_FPS = { last: 0, times: [] };
+  BU3D.samples = B3D_FPS;
+  var BU3D_YEARS = [1990, 2e3, 2014, 2024];
+  var BU3D_ERA = {
+    1990: { label: "1990 \u524D\u5DF2\u5EFA\u6210", color: "#0f6e7c" },
+    2e3: { label: "1990\u20132000 \u65B0\u589E", color: "#d0471f" },
+    2014: { label: "2000\u20132014 \u65B0\u589E", color: "#9a6a10" },
+    2024: { label: "2014 \u540E\u65B0\u589E", color: "#6b4fa1" }
+  };
+  var BU3D_LOD_DELTA = 1.4;
+  function initBuiltup3D() {
+    const section = document.getElementById("lab-builtup-3d");
+    if (!section || BU3D.started) return;
+    if (typeof maplibregl === "undefined") {
+      show3DError("MapLibre \u672A\u52A0\u8F7D\uFF0C\u65E0\u6CD5\u663E\u793A 3D \u5EFA\u7B51");
+      return;
+    }
+    const start = () => {
+      if (!BU3D.started) {
+        BU3D.started = true;
+        startBuiltup3DMap();
+      }
+    };
+    if ("IntersectionObserver" in window) {
+      const io = new IntersectionObserver((entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          io.disconnect();
+          start();
+        }
+      }, { rootMargin: "360px 0px" });
+      io.observe(section);
+    } else {
+      start();
+    }
+  }
+  function bu3dView() {
+    const sel = document.querySelector("#a-controls select");
+    const city = sel && sel.value || BU3D.city;
+    return { city };
+  }
+  function startBuiltup3DMap() {
+    const container = document.getElementById("map-3d");
+    BU3D.city = bu3dView().city;
+    const dpr = window.devicePixelRatio || 1;
+    map3D = new maplibregl.Map({
+      container,
+      style: buildOnlineStyle(),
+      center: [114.07, 22.58],
+      zoom: 11.4,
+      pitch: 56,
+      bearing: -18,
+      minZoom: TIANDITU_MIN_ZOOM,
+      maxZoom: TIANDITU_MAX_ZOOM,
+      maxPitch: 72,
+      attributionControl: false,
+      dragRotate: true,
+      pitchWithRotate: true,
+      pixelRatio: Math.min(dpr, 1.5),
+      antialias: dpr <= 1.25,
+      renderWorldCopies: false
+    });
+    map3D.addControl(new maplibregl.NavigationControl({ showCompass: true, visualizePitch: true }), "top-right");
+    map3D.addControl(new maplibregl.ScaleControl({ maxWidth: 96, unit: "metric" }), "bottom-right");
+    map3D.on("error", () => {
+    });
+    map3D.on("move", () => {
+      if (map3D.__lodRaf) return;
+      map3D.__lodRaf = requestAnimationFrame(() => {
+        map3D.__lodRaf = null;
+        updateLodChip();
+      });
+    });
+    map3D.on("render", () => {
+      const now = performance.now();
+      if (B3D_FPS.last) {
+        const dt = now - B3D_FPS.last;
+        if (dt > 0 && dt < 5e3) {
+          B3D_FPS.times.push(dt);
+          if (B3D_FPS.times.length > 48) B3D_FPS.times.shift();
+        }
+      }
+      B3D_FPS.last = now;
+      evaluateAutoLod();
+    });
+    if ("ResizeObserver" in window) {
+      const ro = new ResizeObserver(() => {
+        try {
+          map3D && map3D.resize();
+        } catch (e) {
+        }
+      });
+      ro.observe(container);
+    } else {
+      window.addEventListener("resize", () => {
+        try {
+          map3D && map3D.resize();
+        } catch (e) {
+        }
+      });
+    }
+    map3D.on("load", async () => {
+      try {
+        await setupBasemap(map3D);
+        try {
+          map3D.setMinZoom(8.5);
+        } catch (e) {
+        }
+        apply3DSky();
+        bind3DControls();
+        BU3D.meta = await fetchJSON(dataUrl("buildings/buildings-meta.json"));
+        await applyCity(BU3D.city);
+        const loading = document.getElementById("map-3d-loading");
+        if (loading) loading.classList.add("hide");
+        window.__bu3D = {
+          map: map3D,
+          state: BU3D,
+          get data() {
+            return BU3D.data;
+          },
+          get overview() {
+            return BU3D.overview;
+          },
+          setYear: set3DYear,
+          setCity: applyCity,
+          play: startPlay,
+          stop: stopPlay,
+          toggleMode: toggle3DMode
+        };
+      } catch (e) {
+        show3DError("3D \u5EFA\u7B51\u6570\u636E\u52A0\u8F7D\u5931\u8D25\uFF1A" + (e && e.message ? e.message : e));
+      }
+    });
+  }
+  function apply3DSky() {
+    if (!map3D || typeof map3D.setSky !== "function") return;
+    try {
+      map3D.setSky({
+        "sky-color": "#ffd9b8",
+        "horizon-color": "#fff6f4",
+        "fog-color": "#fff6f4",
+        "fog-ground-blend": 0.55,
+        "horizon-fog-blend": 0.6,
+        "sky-horizon-blend": 0.65,
+        "atmosphere-blend": 0.16
+      });
+    } catch (e) {
+    }
+  }
+  function bu3dPaint() {
+    return {
+      "fill-extrusion-color": [
+        "match",
+        ["get", "era"],
+        1990,
+        BU3D_ERA[1990].color,
+        2e3,
+        BU3D_ERA[2e3].color,
+        2014,
+        BU3D_ERA[2014].color,
+        2024,
+        BU3D_ERA[2024].color,
+        "#8a8f87"
+      ],
+      // 生长动画：feature-state 'gh' 存在时用它（0→h 过渡值），否则回落到 1:1 真实高度 h。
+      // 只走归一化路口，不建数据（buildings h 恒为准；动画用 setFeatureState 增量写 'gh'）。
+      "fill-extrusion-height": [
+        "coalesce",
+        ["feature-state", "gh"],
+        ["get", "h"]
+      ],
+      "fill-extrusion-base": 0,
+      // 不透明渲染（透明度 1 才能开深度写入）：先压后画的重叠楼体由深度测试直接剔除，
+      // 免掉半透明混合与逐片排序，是逐栋大场景帧时最直接的收益之一；
+      // 0.95 → 1.0 在视觉上不可辨（颜色本身即为实色）。
+      "fill-extrusion-opacity": 1,
+      "fill-extrusion-vertical-gradient": true
+    };
+  }
+  function bu3dCamera(meta) {
+    const [s, w, n, e] = meta.window;
+    const lat = (s + n) / 2;
+    const rad = lat * Math.PI / 180;
+    const canvasW = Math.max(320, (map3D.getContainer().clientWidth || 1200) - 160);
+    const kmWide = (e - w) * 111.32 * Math.cos(rad);
+    const mPerPx = kmWide * 1e3 / (canvasW * 0.78);
+    const zoom = Math.max(10.8, Math.min(13.4, Math.log2(156543.03392 * Math.cos(rad) / mPerPx)));
+    return { center: [(w + e) / 2, lat], zoom, pitch: 56, bearing: -18 };
+  }
+  function bu3dFilter() {
+    return BU3D.mode === "incremental" ? ["==", ["get", "era"], BU3D.year] : ["<=", ["get", "era"], BU3D.year];
+  }
+  function set3DLodRanges() {
+    if (!map3D || map3D._removed) return;
+    try {
+      if (map3D.getLayer("bu3d-city")) map3D.setLayerZoomRange("bu3d-city", BU3D.lodZoom, 24);
+      if (map3D.getLayer("bu3d-city-ov")) map3D.setLayerZoomRange("bu3d-city-ov", 0, BU3D.lodZoom);
+    } catch (e) {
+    }
+  }
+  var RISE_CAP = 2600;
+  var RISE_EASE = (t) => t <= 0 ? 0 : t >= 1 ? 1 : 1 - Math.pow(1 - t, 3);
+  function cancelEraRise(resetAll) {
+    BU3D.rise.token += 1;
+    BU3D.rise.active = false;
+    if (resetAll && map3D && !map3D._removed) {
+      try {
+        if (map3D.getSource("bu3d-src")) map3D.removeFeatureState({ source: "bu3d-src" });
+        if (map3D.getSource("bu3d-ov-src")) map3D.removeFeatureState({ source: "bu3d-ov-src" });
+      } catch (e) {
+      }
+    }
+  }
+  function getSpawnOrder(city, srcKey, era) {
+    const fcSrc = srcKey === "detail" ? BU3D.data[city] || {} : BU3D.overview[city] || {};
+    const store = BU3D.spawn[city] = BU3D.spawn[city] || {};
+    const src = store[srcKey] = store[srcKey] || {};
+    if (src[era]) return src[era];
+    const meta = BU3D.current;
+    let clat = 30, clng = 108;
+    if (meta && meta.window) {
+      clat = (meta.window[0] + meta.window[2]) / 2;
+      clng = (meta.window[1] + meta.window[3]) / 2;
+    }
+    const arr = [];
+    (fcSrc.features || []).forEach((f, i) => {
+      const p = f.properties || {};
+      if (Number(p.era) !== era) return;
+      let d = 0;
+      try {
+        const ring = f.geometry && f.geometry.coordinates[0];
+        if (ring && ring[0]) {
+          const la = ring[0][1], lo = ring[0][0];
+          const dy = (la - clat) * 111.32;
+          const dx = (lo - clng) * 111.32 * Math.cos(la * Math.PI / 180);
+          d = Math.sqrt(dx * dx + dy * dy);
+        }
+      } catch (e) {
+        d = 0;
+      }
+      arr.push({ i, d, h: Math.max(0, Number(p.h) || 0) });
+    });
+    arr.sort((a, b) => a.d - b.d);
+    return src[era] = arr;
+  }
+  function startEraRise(prevYear, prevMode) {
+    if (!map3D || map3D._removed || !BU3D.current) return;
+    const year = BU3D.year;
+    const mode = prevMode || BU3D.mode;
+    const incremental = BU3D.mode === "incremental";
+    const wants = (era) => incremental ? era === year : era <= year;
+    const was = (era) => mode === "incremental" ? era === prevYear : era <= prevYear;
+    const newEras = BU3D_YEARS.filter((era) => wants(era) && !was(era));
+    if (!newEras.length || year < prevYear) {
+      cancelEraRise(true);
+      return;
+    }
+    const inDetail = map3D.getZoom() >= BU3D.lodZoom;
+    const srcKey = inDetail ? "detail" : "overview";
+    const srcId = inDetail ? "bu3d-src" : "bu3d-ov-src";
+    if (!map3D.getSource(srcId)) {
+      cancelEraRise(false);
+      return;
+    }
+    const token = ++BU3D.rise.token;
+    const stride = BU3D.playing ? 55 : 85;
+    const ramp = BU3D.playing ? 240 : 420;
+    const subset = [];
+    for (const era of newEras) {
+      for (const rec of getSpawnOrder(BU3D.city, srcKey, era)) {
+        if (subset.length >= RISE_CAP) break;
+        subset.push(rec);
+      }
+      if (subset.length >= RISE_CAP) break;
+    }
+    if (!subset.length) {
+      cancelEraRise(false);
+      return;
+    }
+    const chunkSize = 240;
+    const chunks = [];
+    for (let i = 0; i < subset.length; i += chunkSize) chunks.push(subset.slice(i, i + chunkSize));
+    BU3D.rise.active = true;
+    BU3D.rise.srcId = srcId;
+    BU3D.rise.t0 = performance.now();
+    BU3D.rise.chunks = chunks;
+    BU3D.rise.stride = stride;
+    BU3D.rise.ramp = ramp;
+    const t0 = BU3D.rise.t0;
+    const tick = () => {
+      if (token !== BU3D.rise.token) {
+        try {
+          if (map3D && !map3D._removed && map3D.getSource(srcId)) map3D.removeFeatureState({ source: srcId });
+        } catch (e) {
+        }
+        return;
+      }
+      const now = performance.now();
+      const totalEnd = t0 + (chunks.length - 1) * stride + ramp;
+      if (now >= totalEnd) {
+        BU3D.rise.active = false;
+        try {
+          map3D.removeFeatureState({ source: srcId });
+        } catch (e) {
+        }
+        return;
+      }
+      if (document.hidden) {
+        requestAnimationFrame(tick);
+        return;
+      }
+      let writes = 0;
+      for (let c = 0; c < chunks.length; c++) {
+        const startAt = t0 + c * stride;
+        if (now < startAt) break;
+        const p = RISE_EASE(Math.min(1, (now - startAt) / ramp));
+        if (p >= 1) continue;
+        for (const rec of chunks[c]) {
+          try {
+            map3D.setFeatureState({ source: srcId, id: rec.i }, { gh: rec.h * p });
+            writes += 1;
+          } catch (e) {
+            break;
+          }
+        }
+        if (writes > 700) break;
+      }
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+  function evaluateAutoLod() {
+    if (!BU3D.autoLod || !map3D || map3D._removed || !BU3D.current) return;
+    if (document.hidden) return;
+    const t = B3D_FPS.times;
+    if (t.length < 24) return;
+    const a = t.slice().sort((x, y) => x - y);
+    const med = a[a.length >> 1];
+    const now = Date.now();
+    const detailVisible = map3D.getZoom() >= BU3D.lodZoom - 0.01;
+    if (detailVisible && med >= 150 && now > BU3D.autoCool && BU3D.autoRaise < 1) {
+      BU3D.autoRaise = Math.min(1, BU3D.autoRaise + 0.7);
+      BU3D.autoCool = now + 12e3;
+      BU3D.lodZoom = Math.min(16, Math.max(map3D.getZoom() + BU3D_LOD_DELTA + BU3D.autoRaise, BU3D.lodZoom));
+      set3DLodRanges();
+      updateLodChip(true);
+      B3D_FPS.times.length = 0;
+    }
+  }
+  function toggle3DMode() {
+    const prevMode = BU3D.mode;
+    BU3D.mode = BU3D.mode === "cumulative" ? "incremental" : "cumulative";
+    const prevYear = BU3D.year;
+    ["bu3d-city", "bu3d-city-ov"].forEach((id) => {
+      if (map3D && map3D.getLayer(id)) map3D.setFilter(id, bu3dFilter());
+    });
+    if (prevMode === "incremental") {
+      startEraRise(prevYear, prevMode);
+    } else {
+      cancelEraRise(true);
+    }
+    apply3DControlsState();
+    render3DStats();
+  }
+  var applyCityToken = 0;
+  async function applyCity(city) {
+    if (!map3D || !BU3D.meta) return;
+    const meta = (BU3D.meta.cities || []).find((m) => m.city === city);
+    if (!meta) {
+      show3DError(`${city} \u6682\u65E0 3D \u5EFA\u7B51\u6570\u636E`);
+      return;
+    }
+    const token = ++applyCityToken;
+    BU3D.city = city;
+    BU3D.current = meta;
+    build3DCitySelect();
+    if (!BU3D.data[city]) {
+      const [detail, overview] = await Promise.all([
+        fetchJSON(dataUrl(`buildings/${city}.geojson`)),
+        fetchJSON(dataUrl(`buildings/${city}-overview.geojson`))
+      ]);
+      (detail.features || []).forEach((f, i) => {
+        f.id = i;
+      });
+      (overview.features || []).forEach((f, i) => {
+        f.id = i;
+      });
+      BU3D.data[city] = detail;
+      BU3D.overview[city] = overview;
+      BU3D.spawn[city] = {};
+    }
+    if (applyCityToken !== token || !map3D || map3D._removed) return;
+    const fc = BU3D.data[city];
+    const ov = BU3D.overview[city];
+    const cam = bu3dCamera(meta);
+    BU3D.autoRaise = 0;
+    BU3D.lodZoom = Math.min(16, cam.zoom + BU3D_LOD_DELTA);
+    if (!map3D.getSource("bu3d-src")) {
+      map3D.addSource("bu3d-src", { type: "geojson", data: fc, maxzoom: 14, buffer: 24, tolerance: 0.375 });
+      map3D.addLayer({ id: "bu3d-city", type: "fill-extrusion", source: "bu3d-src", minzoom: BU3D.lodZoom, paint: bu3dPaint(), filter: bu3dFilter() });
+    } else {
+      map3D.getSource("bu3d-src").setData(fc);
+      map3D.setLayerZoomRange("bu3d-city", BU3D.lodZoom, 24);
+    }
+    if (!map3D.getSource("bu3d-ov-src")) {
+      map3D.addSource("bu3d-ov-src", { type: "geojson", data: ov, maxzoom: 13, buffer: 16, tolerance: 0.375 });
+      map3D.addLayer({ id: "bu3d-city-ov", type: "fill-extrusion", source: "bu3d-ov-src", maxzoom: BU3D.lodZoom, paint: bu3dPaint(), filter: bu3dFilter() });
+    } else {
+      map3D.getSource("bu3d-ov-src").setData(ov);
+      map3D.setLayerZoomRange("bu3d-city-ov", 0, BU3D.lodZoom);
+    }
+    cancelEraRise(true);
+    try {
+      map3D.easeTo(Object.assign(cam, {
+        duration: window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 700
+      }));
+      map3D.once("moveend", () => repairBasemapTiles(map3D));
+    } catch (err) {
+      repairBasemapTiles(map3D);
+    }
+    render3DLegend();
+    render3DNote();
+    render3DStats();
+    apply3DControlsState();
+    updateLodChip(true);
+  }
+  function set3DYear(year) {
+    const prev = BU3D.year;
+    BU3D.year = Number(year);
+    if (prev === BU3D.year) return;
+    ["bu3d-city", "bu3d-city-ov"].forEach((id) => {
+      if (map3D && map3D.getLayer(id)) map3D.setFilter(id, bu3dFilter());
+    });
+    startEraRise(prev);
+    apply3DControlsState();
+    render3DStats();
+  }
+  function startPlay() {
+    stopPlay();
+    BU3D.playing = true;
+    let i = BU3D_YEARS.indexOf(BU3D.year);
+    if (i < 0 || i >= BU3D_YEARS.length - 1) i = -1;
+    apply3DControlsState();
+    const tick = () => {
+      if (!BU3D.playing) return;
+      i += 1;
+      if (i >= BU3D_YEARS.length) {
+        stopPlay();
+        return;
+      }
+      set3DYear(BU3D_YEARS[i]);
+      if (i >= BU3D_YEARS.length - 1) BU3D.timer = setTimeout(stopPlay, 1600);
+      else BU3D.timer = setTimeout(tick, 1400);
+    };
+    BU3D.timer = setTimeout(tick, 320);
+  }
+  function stopPlay() {
+    if (BU3D.timer) clearTimeout(BU3D.timer);
+    BU3D.timer = null;
+    BU3D.playing = false;
+    apply3DControlsState();
+  }
+  function apply3DControlsState() {
+    document.querySelectorAll("[data-3d-year]").forEach((btn) => {
+      const on = Number(btn.getAttribute("data-3d-year")) === BU3D.year;
+      btn.classList.toggle("active", on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+    const play = document.getElementById("btn-3d-play");
+    if (play) {
+      play.classList.toggle("active", BU3D.playing);
+      play.textContent = BU3D.playing ? "\u25A0 \u505C\u6B62" : "\u25B6 \u64AD\u653E\u6F14\u5316";
+      play.setAttribute("aria-pressed", BU3D.playing ? "true" : "false");
+    }
+    const sel = document.getElementById("lab-3d-city-select");
+    if (sel && sel.value !== BU3D.city) sel.value = BU3D.city;
+    const inc = document.getElementById("btn-3d-incremental");
+    if (inc) {
+      const on = BU3D.mode === "incremental";
+      inc.classList.toggle("active", on);
+      inc.setAttribute("aria-pressed", on ? "true" : "false");
+      inc.textContent = on ? "\u53EA\u770B\u65B0\u589E" : "\u7D2F\u8BA1\u663E\u793A";
+    }
+  }
+  function summarizeCity(fc, meta) {
+    const ck = `${BU3D.city}|${BU3D.mode}|${BU3D.year}`;
+    if (BU3D.summaryCache[ck]) return BU3D.summaryCache[ck];
+    const feats = fc.features || [];
+    const inView = (era) => BU3D.mode === "incremental" ? era === BU3D.year : era <= BU3D.year;
+    const visible = [];
+    const eraCount = { 1990: 0, 2e3: 0, 2014: 0, 2024: 0 };
+    const hs = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 };
+    let tallest = null;
+    for (const f of feats) {
+      const p = f.properties || {};
+      const era = Number(p.era);
+      if (eraCount[era] != null) eraCount[era] += 1;
+      if (!tallest || Number(p.h) > Number(tallest.h)) tallest = p;
+      if (inView(era)) {
+        visible.push(Number(p.h));
+        if (hs[p.hs] != null) hs[p.hs] += 1;
+      }
+    }
+    visible.sort((a, b) => a - b);
+    const pct = (q) => visible.length ? visible[Math.min(visible.length - 1, Math.floor(visible.length * q))] : 0;
+    const out = {
+      total: feats.length,
+      visible: visible.length,
+      eraCount,
+      hs,
+      median: pct(0.5),
+      p90: pct(0.9),
+      tallest: tallest || { h: 0, era: 0 },
+      meta
+    };
+    BU3D.summaryCache = { [ck]: out };
+    return out;
+  }
+  function render3DLegend() {
+    const host = document.getElementById("lab-3d-legend");
+    if (!host) return;
+    const fc = BU3D.data[BU3D.city];
+    if (!fc) {
+      host.innerHTML = "";
+      return;
+    }
+    const s = summarizeCity(fc, BU3D.current);
+    host.innerHTML = "";
+    host.appendChild(el("span", { class: "lab-3d-legend-title", text: "\u9996\u6B21\u8FDB\u5165\u5EFA\u6210\u533A" }));
+    BU3D_YEARS.forEach((y) => {
+      const row = el("span", { class: "lab-3d-legend-row" + (y <= BU3D.year ? "" : " is-off") }, [
+        el("i", { class: "era-" + y }),
+        el("span", { text: BU3D_ERA[y].label }),
+        el("em", { class: "lab-3d-legend-count", text: formatNumber(s.eraCount[y]) })
+      ]);
+      host.appendChild(row);
+    });
+  }
+  var lodChipText = "";
+  function updateLodChip(force) {
+    const host = document.getElementById("lab-3d-lod");
+    if (!host || !map3D) return;
+    const z = map3D.getZoom();
+    const detail = z >= BU3D.lodZoom;
+    const m = BU3D.current;
+    const dn = (BU3D.data[BU3D.city] || { features: [] }).features.length;
+    const on = (BU3D.overview[BU3D.city] || { features: [] }).features.length;
+    const ratio = dn ? Math.round(100 * on / dn) : 0;
+    const cell = m && m.overview_cell_deg || 13e-4;
+    const lat = m ? (m.window[0] + m.window[2]) / 2 : 30;
+    const cw = Math.round(cell * 111320 * Math.cos(lat * Math.PI / 180));
+    const ch = Math.round(cell * 110570);
+    const degrade = BU3D.autoRaise > 0 ? ` \xB7 \u5E27\u7387\u4F4E\uFF0C\u5DF2\u4E34\u65F6\u4E0A\u8C03\u7EC6\u8282\u9608\u503C ${BU3D.autoRaise.toFixed(1)} \u7EA7` : "";
+    const text = detail ? `\u9010\u680B\u7EC6\u8282\u5C42 \xB7 ${formatNumber(dn)} \u680B\u5168\u91CF\u8F6E\u5ED3\uFF08\u653E\u5927\u4E2D\uFF0C\u8F6F\u4EF6\u6E32\u67D3\u6216\u4F4E\u7AEF\u663E\u5361\u65CB\u8F6C\u53EF\u80FD\u53D8\u6162\uFF09` : `\u8FDC\u666F\u6982\u89C8\u5C42 \xB7 \u6BCF ${cw}\xD7${ch}m \u7F51\u683C\u4FDD\u7559\u6700\u9AD8\u4E00\u680B\uFF0C${formatNumber(on)} / ${formatNumber(dn)} \u680B\uFF08${ratio}%\uFF09 \xB7 \u653E\u5927\u5230 ${BU3D.lodZoom.toFixed(1)} \u7EA7\u5207\u6362\u9010\u680B\u8F6E\u5ED3${degrade}`;
+    if (!force && text === lodChipText) {
+      host.classList.toggle("is-detail", detail);
+      return;
+    }
+    lodChipText = text;
+    host.textContent = text;
+    host.classList.toggle("is-detail", detail);
+  }
+  function render3DNote() {
+    const host = document.getElementById("lab-3d-note");
+    if (!host || !BU3D.current) return;
+    const m = BU3D.current;
+    const kmx = ((m.window[3] - m.window[1]) * 111.32 * 0.92).toFixed(1);
+    const kmy = ((m.window[2] - m.window[0]) * 110.57).toFixed(1);
+    host.textContent = `\u8F6E\u5ED3\uFF1AOpenStreetMap \u5EFA\u7B51\u591A\u8FB9\u5F62\uFF08\xA9 OpenStreetMap contributors\uFF0CODbL\uFF09\uFF0C\u53CD\u6620\u5F53\u524D\u5730\u56FE\u72B6\u6001\uFF1B\u8BE5\u57CE\u5E02 OSM \u6536\u5F55\u53EF\u80FD\u4E0D\u5B8C\u6574\uFF0C\u8F6E\u5ED3\u7A00\u758F\u5904\u4E0D\u4EE3\u8868\u5B9E\u5730\u6CA1\u6709\u5EFA\u7B51\u3002\u5E74\u4EE3\uFF1A\u6309\u5EFA\u7B51\u5E95\u9762\u8D28\u5FC3\u9996\u6B21\u843D\u5165 AUE \u5EFA\u6210\u533A\uFF081990 / 2000 / 2014\uFF09\u7684\u65F6\u76F8\u63A8\u65AD\uFF0C\u4E09\u671F\u8303\u56F4\u5916\u8BB0\u4E3A\u300C2014 \u540E\u65B0\u589E\u300D\uFF0C\u662F\u5E74\u4EE3\u5206\u5C42\u800C\u975E\u7AE3\u5DE5\u5E74\u4EFD\u3002\u9AD8\u5EA6\uFF1AOSM height \u6807\u7B7E \u2192 building:levels \xD7 3.2m \u2192 \u540C\u5E74\u4EE3\u540C\u7C7B\u578B\u4E2D\u4F4D\u6570 \u2192 \u540C\u5E74\u4EE3\u4E2D\u4F4D\u6570 \u2192 8m \u515C\u5E95\uFF0C\u6309 1:1 \u7C73\u6E32\u67D3\u3002\u7A97\u53E3\uFF1A\u7531\u5EFA\u6210\u533A\u51E0\u4F55\u641C\u7D22\u786E\u5B9A\u7684${m.name_cn}\u6838\u5FC3\u533A\uFF08\u7EA6 ${kmx} \xD7 ${kmy} km\uFF09\uFF0C\u975E\u5168\u5E02\u57DF\u3002`;
+  }
+  function render3DStats() {
+    const host = document.getElementById("lab-3d-stats");
+    if (!host) return;
+    const fc = BU3D.data[BU3D.city];
+    if (!fc) {
+      host.textContent = "";
+      return;
+    }
+    const s = summarizeCity(fc, BU3D.current);
+    const n = s.total || 1;
+    const items = [
+      ["\u65F6\u76F8", BU3D.year === 2024 ? "\u73B0\u72B6\uFF082014 \u540E\uFF09" : String(BU3D.year)],
+      [BU3D.mode === "incremental" ? "\u53EF\u89C1\u5EFA\u7B51\uFF08\u672C\u5E74\u4EE3\u65B0\u589E\uFF09" : "\u53EF\u89C1\u5EFA\u7B51\uFF08\u7D2F\u8BA1\uFF09", `${formatNumber(s.visible)} / ${formatNumber(s.total)}`],
+      ["\u4E2D\u4F4D\u9AD8\u5EA6", `${Number(s.median).toFixed(1)} m`],
+      ["P90 \u9AD8\u5EA6", `${Number(s.p90).toFixed(1)} m`],
+      ["\u6700\u9AD8\u5EFA\u7B51\uFF08\u5168\u65F6\u6BB5\uFF09", `${Number(s.tallest.h).toFixed(1)} m`],
+      ["\u9AD8\u5EA6\u6765\u6E90 \u5B9E\u6D4B/\u6807\u7B7E", `${(100 * s.hs[0] / n).toFixed(1)}%`],
+      ["\u9AD8\u5EA6\u6765\u6E90 \u5C42\u6570\u63A8\u7B97", `${(100 * s.hs[1] / n).toFixed(1)}%`],
+      ["\u9AD8\u5EA6\u6765\u6E90 \u540C\u7C7B\u4E2D\u4F4D\u6570", `${(100 * (s.hs[2] + s.hs[3]) / n).toFixed(1)}%`],
+      ["\u9AD8\u5EA6\u6765\u6E90 \u515C\u5E95", `${(100 * s.hs[4] / n).toFixed(1)}%`]
+    ];
+    if (s.meta && s.meta.thinned_out > 0) {
+      items.push(["\u6536\u5F55\u62BD\u7A00", `\u4FDD\u7559 ${formatNumber(s.total)}\uFF0C\u820D\u5F03 ${formatNumber(s.meta.thinned_out)}\uFF08\u6309\u5E95\u9762\u79EF\u4F18\u5148\uFF09`]);
+    }
+    const topEra = Object.entries(s.eraCount).sort((a, b) => b[1] - a[1])[0];
+    if (topEra && s.total > 0 && topEra[1] / s.total >= 0.8) {
+      items.push([
+        "\u5E74\u4EE3\u6784\u6210\u63D0\u793A",
+        `${BU3D_ERA[topEra[0]].label} \u5360 ${(100 * topEra[1] / s.total).toFixed(0)}%\uFF0C\u8BE5\u57CE\u6269\u5F20\u591A\u5728\u7A97\u53E3\u5916\u56F4\uFF0C\u53EF\u5207\u300C\u53EA\u770B\u65B0\u589E\u300D\u770B\u5404\u5E74\u4EE3\u589E\u91CF`
+      ]);
+    }
+    host.innerHTML = "";
+    items.forEach(([label, value]) => {
+      host.appendChild(el("div", { class: "lab-3d-stat" }, [
+        el("span", { class: "lab-3d-stat-label", text: label }),
+        el("strong", { class: "lab-3d-stat-value tabular-nums", text: value })
+      ]));
+    });
+    render3DLegend();
+  }
+  function build3DCitySelect() {
+    const sel = document.getElementById("lab-3d-city-select");
+    if (!sel || sel.options.length) return;
+    const names = {};
+    (BU3D.meta && BU3D.meta.cities || []).forEach((m) => {
+      names[m.city] = m.name_cn;
+    });
+    const keys = Object.keys(URBAN.cities).filter((c) => names[c]);
+    sel.innerHTML = "";
+    keys.forEach((c) => sel.appendChild(el("option", { value: c, text: names[c] })));
+    sel.value = BU3D.city;
+    sel.addEventListener("change", () => applyCity(sel.value).catch(() => {
+    }));
+  }
+  function bind3DControls() {
+    document.querySelectorAll("[data-3d-year]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        stopPlay();
+        set3DYear(Number(btn.getAttribute("data-3d-year")));
+      });
+    });
+    const play = document.getElementById("btn-3d-play");
+    if (play) play.addEventListener("click", () => {
+      if (BU3D.playing) stopPlay();
+      else startPlay();
+    });
+    const inc = document.getElementById("btn-3d-incremental");
+    if (inc) inc.addEventListener("click", toggle3DMode);
+    const reset = document.getElementById("btn-3d-reset");
+    if (reset) {
+      reset.addEventListener("click", () => {
+        const m = BU3D.current;
+        if (!m) return;
+        const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        try {
+          const cam = bu3dCamera(m);
+          map3D.easeTo(Object.assign(cam, { duration: reduce ? 0 : 700 }));
+          BU3D.autoRaise = 0;
+          BU3D.lodZoom = Math.min(16, cam.zoom + BU3D_LOD_DELTA);
+          set3DLodRanges();
+          updateLodChip(true);
+          cancelEraRise(true);
+        } catch (e2) {
+        }
+      });
+    }
+    apply3DControlsState();
+  }
+  function show3DError(msg) {
+    const loading = document.getElementById("map-3d-loading");
+    if (loading) {
+      loading.classList.remove("hide");
+      loading.textContent = msg;
+    }
+    toast(msg, "error", 4e3);
+  }
+  function showBasemapFallbackBanner(msg, ms) {
+    try {
+      let bar = document.getElementById("wb-basemap-banner");
+      if (!bar) {
+        bar = el("div", { id: "wb-basemap-banner", class: "basemap-banner", role: "status" });
+        document.body.appendChild(bar);
+      }
+      bar.textContent = msg;
+      bar.classList.add("show");
+      clearTimeout(bar._t);
+      bar._t = setTimeout(() => bar.classList.remove("show"), ms || 8e3);
+    } catch (err) {
+    }
+  }
+  document.addEventListener("wb-basemap-fallback", (e) => {
+    try {
+      const on = !!(e && e.detail && e.detail.fallback);
+      if (on) {
+        const name = e.detail && e.detail.name || "\u5907\u7528\u5E95\u56FE";
+        const attr = e.detail && e.detail.attr || "";
+        showBasemapFallbackBanner(`\u5929\u5730\u56FE\u4ECA\u65E5\u74E6\u7247\u914D\u989D\u53D7\u9650\uFF0C\u5DF2\u4E34\u65F6\u542F\u7528\u5907\u7528\u5E95\u56FE ${name}\uFF08${attr}\uFF09\uFF0C\u6062\u590D\u540E\u81EA\u52A8\u5207\u56DE`, 1e4);
+      } else {
+        showBasemapFallbackBanner("\u5929\u5730\u56FE\u5E95\u56FE\u5DF2\u6062\u590D\uFF08\xA9 \u5929\u5730\u56FE \xB7 GS(2023)336\u53F7\uFF09", 8e3);
+      }
+    } catch (err) {
+    }
+  });
 
   // scripts/local-entries/analysis.js
   initShell();

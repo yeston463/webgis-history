@@ -61,10 +61,41 @@ function localDataKey(url) {
   return String(url).split('?')[0].replace(/^(\.\.\/|\.\/)+/, '');
 }
 
+// 本地文件版把大体量数据拆成 data/**.geojson.js 分片，首次用到时才注入 <script>，
+// 避免 analysis 页一进来就解析全部九城建筑轮廓。
+const _chunkPromises = new Map();
+export function ensureLocalChunk(key) {
+  if (!window.__LOCAL_DATA__) window.__LOCAL_DATA__ = {};
+  if (Object.prototype.hasOwnProperty.call(window.__LOCAL_DATA__, key)) return Promise.resolve(true);
+  if (_chunkPromises.has(key)) return _chunkPromises.get(key);
+  const prefix = location.pathname.includes('/pages/') ? '../' : '';
+  const p = new Promise((resolve) => {
+    const script = document.createElement('script');
+    let settled = false;
+    const finish = (ok) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      _chunkPromises.delete(key);
+      resolve(ok);
+    };
+    const timer = setTimeout(() => finish(false), 30000);
+    script.onload = () => finish(true);
+    script.onerror = () => finish(false);
+    script.src = prefix + key + '.js';
+    document.head.appendChild(script);
+  });
+  _chunkPromises.set(key, p);
+  return p;
+}
+
 export async function fetchJSON(url, { signal, noCache = false } = {}) {
   if (!noCache && _cache.has(url)) return _cache.get(url);
   // 本地文件版把 JSON/GeoJSON 预生成为 window.__LOCAL_DATA__，绕开 file:// 的 fetch 限制。
   const key = localDataKey(url);
+  if (window.__LOCAL_FILE_BUILD__ && !Object.prototype.hasOwnProperty.call(window.__LOCAL_DATA__ || {}, key)) {
+    await ensureLocalChunk(key);
+  }
   if (window.__LOCAL_DATA__ && Object.prototype.hasOwnProperty.call(window.__LOCAL_DATA__, key)) {
     const data = window.__LOCAL_DATA__[key];
     if (!noCache) _cache.set(url, data);

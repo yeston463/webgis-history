@@ -4,7 +4,7 @@
 //  模块三：GeoServer (OGC WFS/WMS) 控制台与 PostGIS 在线空间入库 (ST_MakePoint)
 
 import { bindLifecycle, restackLayers } from './map.js';
-import { buildOnlineStyle, setupBasemap, bindZoomLimitControl, formatZoomReadout, basemapLabel } from './basemap.js';
+import { buildOnlineStyle, setupBasemap, bindZoomLimitControl, formatZoomReadout, basemapLabel, repairBasemapTiles } from './basemap.js';
 import { TIANDITU_MIN_ZOOM, TIANDITU_MAX_ZOOM } from './config.js';
 import { addHeritagePoints, addReformPoints, setActiveMarker, showPopup, closePopup, REFORM_COLORS, markerIconDataURL } from './layers.js';
 import { initLayerPanel } from './layerpanel.js';
@@ -39,6 +39,9 @@ export function initAnalysisPage() {
     try { if (mapA && !mapA._removed) { mapA.remove(); mapA._removed = true; } } catch (e) {}
     try { if (mapB && !mapB._removed) { mapB.remove(); mapB._removed = true; } } catch (e) {}
     try { if (mapBuf && !mapBuf._removed) { mapBuf.remove(); mapBuf._removed = true; } } catch (e) {}
+    try { if (BU3D.timer) clearTimeout(BU3D.timer); } catch (e) {}
+    try { if (map3D && !map3D._removed) { map3D.remove(); map3D._removed = true; } } catch (e) {}
+    try { if (map3D && !map3D._removed) { map3D.remove(); map3D._removed = true; } } catch (e) {}
   });
   const params = new URLSearchParams(location.search);
   startCity = params.get('city') || 'shenzhen';
@@ -89,6 +92,7 @@ export function initAnalysisPage() {
 
   initPostgisBufferLab();
   initOgcAndInsertPanel();
+  initBuiltup3D();
 }
 
 /* ----------------------------- 架构状态探针 ----------------------------- */
@@ -172,6 +176,8 @@ function buildControls() {
     // 切换城市下拉框时立即跳转卷帘双图视角（无需等待瓦片或矢量布尔运算完成）
     jumpSwipeToCity(c, false);
     loadBuiltup(c, ys[0], ys[ys.length - 1], true);
+    // 3D 建筑模块跟随城市切换（未初始化时先记下城市，滚动到模块时再用）
+    if (BU3D.started) { applyCity(c).catch(() => {}); } else { BU3D.city = c; }
   });
   yaSel.querySelector('select').addEventListener('change', () => reloadA(false));
   ybSel.querySelector('select').addEventListener('change', () => reloadA(false));
@@ -1495,3 +1501,689 @@ function replaceOptions(fieldEl, pairs, value) {
   const s = fieldEl.querySelector('select'); s.innerHTML = '';
   pairs.forEach(([v, t]) => { const o = el('option', { value: v, text: t }); if (String(v) === String(value)) o.selected = true; s.appendChild(o); });
 }
+
+/* ----------------------------- 模块一附加：九城建筑三维演化（OSM 真实轮廓 × 建成区年代分层） ----------------------------- */
+// era = 建筑底面质心首次落入 AUE 建成区范围的时相（1990/2000/2014，三期外记 2024），是推断的年代层而非竣工年份。
+// 时间轴按 era ≤ 当前时相 累计显示；颜色表示年代，高度按 1:1 米渲染（OSM 标注或分级插补）。
+let map3D = null;
+const BU3D = { started: false, city: 'shenzhen', year: 2014, mode: 'cumulative', playing: false, timer: null, data: {}, overview: {}, meta: null, current: null, summaryCache: {}, lodZoom: 14.7,
+  // 自适应降级：细节层下交互帧时持续过低（中位 ≥150ms）时，临时上调 LOD 阈值回到概览层；
+  // 调整只在交互中生效，城市切换 / 复位视角后清零重试。autoLod=false 可整体关闭（perf 脚本用它固定行为）。
+  autoLod: true, autoRaise: 0, autoCool: 0,
+  // 生长动画：token 用于在换城/换年时终止在跑的动画；spawn 缓存 [城市][源][年代]→按"建成区中心
+  // 向外"排序的楼栋索引；rise 记录当前动画状态（startsWith t0/era/frames）。
+  spawn: {}, rise: { token: 0, active: false, t0: 0, srcId: '', chunks: [], ramp: 260, stride: 60 } };
+// 帧时环形缓冲：render 事件间隔（交互/补间时才密集出现），供自适应降级判定；
+// 挂到 BU3D.samples 上，测试/调试可以从外部注入样本再触发一次 render 验证阈值调整。
+const B3D_FPS = { last: 0, times: [] };
+BU3D.samples = B3D_FPS;
+const BU3D_YEARS = [1990, 2000, 2014, 2024];
+const BU3D_ERA = {
+  1990: { label: '1990 前已建成', color: '#0f6e7c' },
+  2000: { label: '1990–2000 新增', color: '#d0471f' },
+  2014: { label: '2000–2014 新增', color: '#9a6a10' },
+  2024: { label: '2014 后新增', color: '#6b4fa1' },
+};
+const BU3D_HS = ['OSM height 标签', '层数 × 3.2m', '同年代同类型中位数', '同年代中位数', '8m 兜底'];
+// LOD：远景只画概览层（每 145m 网格保留最高的一栋，体块数约为全量的 22–34%）。
+// 软件渲染实测概览层 24.9–32.2fps、默认相机强开逐栋全量降至 4.9–8.9fps（详见 docs/test-records.md 2.0d.1），
+// 所以细节层的接管阈值跟着相机走，而不是写死一个固定层级。
+const BU3D_LOD_DELTA = 1.4;
+
+function initBuiltup3D() {
+  const section = document.getElementById('lab-builtup-3d');
+  if (!section || BU3D.started) return;
+  if (typeof maplibregl === 'undefined') { show3DError('MapLibre 未加载，无法显示 3D 建筑'); return; }
+  const start = () => { if (!BU3D.started) { BU3D.started = true; startBuiltup3DMap(); } };
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) { io.disconnect(); start(); }
+    }, { rootMargin: '360px 0px' });
+    io.observe(section);
+  } else {
+    start();
+  }
+}
+
+function bu3dView() {
+  const sel = document.querySelector('#a-controls select');
+  const city = (sel && sel.value) || BU3D.city;
+  return { city };
+}
+
+function startBuiltup3DMap() {
+  const container = document.getElementById('map-3d');
+  BU3D.city = bu3dView().city;
+  // 渲染开销控制：
+  // - pixelRatio 封顶 1.5：Retina/高分屏不做 2x 全屏采样，填充率降到一半以下，楼体边缘仍有 1.5x 采样；
+  // - antialias 只在低分屏保留 MSAA（高分屏靠 pixelRatio 保边缘锐度）；
+  // - renderWorldCopies:false：最小 8.5 级下无意义的世界副本回放直接关掉。
+  const dpr = window.devicePixelRatio || 1;
+  map3D = new maplibregl.Map({
+    container,
+    style: buildOnlineStyle(),
+    center: [114.07, 22.58],
+    zoom: 11.4,
+    pitch: 56,
+    bearing: -18,
+    minZoom: TIANDITU_MIN_ZOOM,
+    maxZoom: TIANDITU_MAX_ZOOM,
+    maxPitch: 72,
+    attributionControl: false,
+    dragRotate: true,
+    pitchWithRotate: true,
+    pixelRatio: Math.min(dpr, 1.5),
+    antialias: dpr <= 1.25,
+    renderWorldCopies: false,
+  });
+  map3D.addControl(new maplibregl.NavigationControl({ showCompass: true, visualizePitch: true }), 'top-right');
+  map3D.addControl(new maplibregl.ScaleControl({ maxWidth: 96, unit: 'metric' }), 'bottom-right');
+  map3D.on('error', () => {});
+  map3D.on('move', () => {
+    if (map3D.__lodRaf) return;
+    map3D.__lodRaf = requestAnimationFrame(() => { map3D.__lodRaf = null; updateLodChip(); });
+  });
+  map3D.on('render', () => {
+    const now = performance.now();
+    if (B3D_FPS.last) {
+      const dt = now - B3D_FPS.last;
+      if (dt > 0 && dt < 5000) {
+        B3D_FPS.times.push(dt);
+        if (B3D_FPS.times.length > 48) B3D_FPS.times.shift();
+      }
+    }
+    B3D_FPS.last = now;
+    evaluateAutoLod();
+  });
+
+  if ('ResizeObserver' in window) {
+    const ro = new ResizeObserver(() => { try { map3D && map3D.resize(); } catch (e) {} });
+    ro.observe(container);
+  } else {
+    window.addEventListener('resize', () => { try { map3D && map3D.resize(); } catch (e) {} });
+  }
+
+  map3D.on('load', async () => {
+    try {
+      await setupBasemap(map3D);
+      try { map3D.setMinZoom(8.5); } catch (e) {}
+      apply3DSky();
+      bind3DControls();
+      BU3D.meta = await fetchJSON(dataUrl('buildings/buildings-meta.json'));
+      await applyCity(BU3D.city);
+      const loading = document.getElementById('map-3d-loading');
+      if (loading) loading.classList.add('hide');
+      window.__bu3D = {
+        map: map3D,
+        state: BU3D,
+        get data() { return BU3D.data; },
+        get overview() { return BU3D.overview; },
+        setYear: set3DYear,
+        setCity: applyCity,
+        play: startPlay,
+        stop: stopPlay,
+        toggleMode: toggle3DMode,
+      };
+    } catch (e) {
+      show3DError('3D 建筑数据加载失败：' + (e && e.message ? e.message : e));
+    }
+  });
+}
+
+function apply3DSky() {
+  if (!map3D || typeof map3D.setSky !== 'function') return;
+  try {
+    map3D.setSky({
+      'sky-color': '#ffd9b8',
+      'horizon-color': '#fff6f4',
+      'fog-color': '#fff6f4',
+      'fog-ground-blend': 0.55,
+      'horizon-fog-blend': 0.6,
+      'sky-horizon-blend': 0.65,
+      'atmosphere-blend': 0.16,
+    });
+  } catch (e) { /* 旧版 MapLibre 无天空 API */ }
+}
+
+function bu3dPaint() {
+  return {
+    'fill-extrusion-color': [
+      'match', ['get', 'era'],
+      1990, BU3D_ERA[1990].color,
+      2000, BU3D_ERA[2000].color,
+      2014, BU3D_ERA[2014].color,
+      2024, BU3D_ERA[2024].color,
+      '#8a8f87',
+    ],
+    // 生长动画：feature-state 'gh' 存在时用它（0→h 过渡值），否则回落到 1:1 真实高度 h。
+    // 只走归一化路口，不建数据（buildings h 恒为准；动画用 setFeatureState 增量写 'gh'）。
+    'fill-extrusion-height': [
+      'coalesce', ['feature-state', 'gh'], ['get', 'h'],
+    ],
+    'fill-extrusion-base': 0,
+    // 不透明渲染（透明度 1 才能开深度写入）：先压后画的重叠楼体由深度测试直接剔除，
+    // 免掉半透明混合与逐片排序，是逐栋大场景帧时最直接的收益之一；
+    // 0.95 → 1.0 在视觉上不可辨（颜色本身即为实色）。
+    'fill-extrusion-opacity': 1,
+    'fill-extrusion-vertical-gradient': true,
+  };
+}
+
+// 直接按窗口宽度反算相机：fitBounds 在 56° 俯仰下会把镜头推到 minZoom（建筑缩成亚像素，
+// 且全部要素同屏导致掉帧），所以这里按"窗口宽度占画布约 78%"确定缩放，再叠加俯仰。
+function bu3dCamera(meta) {
+  const [s, w, n, e] = meta.window;
+  const lat = (s + n) / 2;
+  const rad = (lat * Math.PI) / 180;
+  const canvasW = Math.max(320, ((map3D.getContainer().clientWidth || 1200) - 160));
+  const kmWide = (e - w) * 111.32 * Math.cos(rad);
+  const mPerPx = (kmWide * 1000) / (canvasW * 0.78);
+  const zoom = Math.max(10.8, Math.min(13.4, Math.log2((156543.03392 * Math.cos(rad)) / mPerPx)));
+  return { center: [(w + e) / 2, lat], zoom, pitch: 56, bearing: -18 };
+}
+
+function bu3dFilter() {
+  return BU3D.mode === 'incremental'
+    ? ['==', ['get', 'era'], BU3D.year]
+    : ['<=', ['get', 'era'], BU3D.year];
+}
+
+// 两级 LOD 的图层区间同步（阈值变化或城市切换后都要走一遍，保持互补）
+function set3DLodRanges() {
+  if (!map3D || map3D._removed) return;
+  try {
+    if (map3D.getLayer('bu3d-city')) map3D.setLayerZoomRange('bu3d-city', BU3D.lodZoom, 24);
+    if (map3D.getLayer('bu3d-city-ov')) map3D.setLayerZoomRange('bu3d-city-ov', 0, BU3D.lodZoom);
+  } catch (e) { /* 图层尚未就位时忽略 */ }
+}
+
+/* ------------------------- 生长动画（feature-state 分波写入） -------------------------
+ * 触发：set3DYear / toggle3DMode 使「可见年代集」增大时，对新纳入的年代做升起表现：
+ *   - 每栋楼从本年代楼群按"建成区中心向外"的次序依次从 0 长到 1:1 高度（easeOutCubic）；
+ *   - 实现不逐帧建网格：height 表达式已挂 'gh' feature-state（见 bu3dPaint），每帧只对
+ *     活跃波段的楼栋 setFeatureState 重写顶点高度，单帧写入 ≤ ~2 波 ≈ 480 栋，帧时可控；
+ *   - 楼群上限 RISE_CAP：超出的楼栋不进动画、直接以满高出现（概览层 ≤ ~5k，逐栋 ≤ 20k）；
+ *   - 播放（1.4s/步）用更快的 stride/ramp 让一整步动画收在节拍内；单次点年份用较缓节奏；
+ *   - 有效源 = 当前可见层（概览/逐栋缩放阈值决定），另一侧保持满高不受影响。
+ * 终止与复位：换城 / 换年缩小 / cancel token；setData 换城即清除全部 feature-state。
+ */
+const RISE_CAP = 2600;
+const RISE_EASE = (t) => (t <= 0 ? 0 : t >= 1 ? 1 : 1 - Math.pow(1 - t, 3));
+
+function cancelEraRise(resetAll) {
+  BU3D.rise.token += 1;
+  BU3D.rise.active = false;
+  if (resetAll && map3D && !map3D._removed) {
+    try {
+      if (map3D.getSource('bu3d-src')) map3D.removeFeatureState({ source: 'bu3d-src' });
+      if (map3D.getSource('bu3d-ov-src')) map3D.removeFeatureState({ source: 'bu3d-ov-src' });
+    } catch (e) { /* 源尚未就绪时忽略 */ }
+  }
+}
+
+// 生长次序缓存：[城市][源][年代] → 索引数组（按楼底到建成区中心距离升序）
+function getSpawnOrder(city, srcKey, era) {
+  const fcSrc = srcKey === 'detail' ? (BU3D.data[city] || {}) : (BU3D.overview[city] || {});
+  const store = (BU3D.spawn[city] = BU3D.spawn[city] || {});
+  const src = (store[srcKey] = store[srcKey] || {});
+  if (src[era]) return src[era];
+  const meta = BU3D.current;
+  let clat = 30, clng = 108;
+  if (meta && meta.window) { clat = (meta.window[0] + meta.window[2]) / 2; clng = (meta.window[1] + meta.window[3]) / 2; }
+  const arr = [];
+  (fcSrc.features || []).forEach((f, i) => {
+    const p = f.properties || {};
+    if (Number(p.era) !== era) return;
+    let d = 0;
+    try {
+      const ring = f.geometry && f.geometry.coordinates[0];
+      if (ring && ring[0]) {
+        const la = ring[0][1], lo = ring[0][0];
+        const dy = (la - clat) * 111.32;
+        const dx = (lo - clng) * 111.32 * Math.cos((la * Math.PI) / 180);
+        d = Math.sqrt(dx * dx + dy * dy);
+      }
+    } catch (e) { d = 0; }
+    arr.push({ i, d, h: Math.max(0, Number(p.h) || 0) });
+  });
+  arr.sort((a, b) => a.d - b.d);
+  return (src[era] = arr);
+}
+
+function startEraRise(prevYear, prevMode) {
+  if (!map3D || map3D._removed || !BU3D.current) return;
+  const year = BU3D.year;
+  const mode = prevMode || BU3D.mode; // toggle 场景需要用切换前的口径判断“先前是否可见”
+  const incremental = BU3D.mode === 'incremental';
+  const wants = (era) => (incremental ? era === year : era <= year);
+  const was = (era) => (mode === 'incremental' ? era === prevYear : era <= prevYear);
+  const newEras = BU3D_YEARS.filter((era) => wants(era) && !was(era));
+  if (!newEras.length || year < prevYear) { cancelEraRise(true); return; }
+
+  const inDetail = map3D.getZoom() >= BU3D.lodZoom;
+  const srcKey = inDetail ? 'detail' : 'overview';
+  const srcId = inDetail ? 'bu3d-src' : 'bu3d-ov-src';
+  if (!map3D.getSource(srcId)) { cancelEraRise(false); return; }
+
+  const token = ++BU3D.rise.token;
+  // 播放节拍 1.4s/步：压缩 waves；单点年份给更从容的节奏
+  const stride = BU3D.playing ? 55 : 85;
+  const ramp = BU3D.playing ? 240 : 420;
+
+  // 排序：先年代序，再按半径向外（新楼宇"从里往外长"）；超出上限的楼群直接满高出现
+  const subset = [];
+  for (const era of newEras) {
+    for (const rec of getSpawnOrder(BU3D.city, srcKey, era)) {
+      if (subset.length >= RISE_CAP) break;
+      subset.push(rec);
+    }
+    if (subset.length >= RISE_CAP) break;
+  }
+  if (!subset.length) { cancelEraRise(false); return; }
+
+  const chunkSize = 240;
+  const chunks = [];
+  for (let i = 0; i < subset.length; i += chunkSize) chunks.push(subset.slice(i, i + chunkSize));
+  BU3D.rise.active = true;
+  BU3D.rise.srcId = srcId;
+  BU3D.rise.t0 = performance.now();
+  BU3D.rise.chunks = chunks;
+  BU3D.rise.stride = stride;
+  BU3D.rise.ramp = ramp;
+
+  const t0 = BU3D.rise.t0;
+  const tick = () => {
+    if (token !== BU3D.rise.token) { // 被新动画/复位顶掉：清掉自己残写的半高 state（新动画下一帧会重写活跃波）
+      try { if (map3D && !map3D._removed && map3D.getSource(srcId)) map3D.removeFeatureState({ source: srcId }); } catch (e) {}
+      return;
+    }
+    const now = performance.now();
+    const totalEnd = t0 + (chunks.length - 1) * stride + ramp;
+    if (now >= totalEnd) { // 动画结束：清掉全部 gh，楼体回到静态 1:1 满高
+      BU3D.rise.active = false;
+      try { map3D.removeFeatureState({ source: srcId }); } catch (e) {}
+      return;
+    }
+    if (document.hidden) { requestAnimationFrame(tick); return; } // 后台页暂停写入
+    let writes = 0;
+    for (let c = 0; c < chunks.length; c++) {
+      const startAt = t0 + c * stride;
+      if (now < startAt) break; // 后续波段还没开始（chunks 有序）
+      const p = RISE_EASE(Math.min(1, (now - startAt) / ramp));
+      if (p >= 1) continue; // 已长满的波跳过写
+      for (const rec of chunks[c]) {
+        try { map3D.setFeatureState({ source: srcId, id: rec.i }, { gh: rec.h * p }); writes += 1; } catch (e) { break; }
+      }
+      if (writes > 700) break; // 单帧写入上限
+    }
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+/* ------------------------------- 生长动画（结束） ------------------------------- */
+
+// 自适应降级：细节层下的交互帧中位数持续 ≥150ms（<6.7fps，软件渲染/低端核显的最坏区间）
+// 时，把 LOD 阈值上调一档（+0.7，上限 +1.0）让相机回到概览层；12 秒内不再重复调整。
+// 换城 / 复位视角会清零 autoRaise 重新尝试细节层；perf 脚本把 autoLod 置 false 以固定行为。
+function evaluateAutoLod() {
+  if (!BU3D.autoLod || !map3D || map3D._removed || !BU3D.current) return;
+  if (document.hidden) return;
+  const t = B3D_FPS.times;
+  if (t.length < 24) return;
+  const a = t.slice().sort((x, y) => x - y);
+  const med = a[a.length >> 1];
+  const now = Date.now();
+  const detailVisible = map3D.getZoom() >= BU3D.lodZoom - 0.01;
+  if (detailVisible && med >= 150 && now > BU3D.autoCool && BU3D.autoRaise < 1.0) {
+    BU3D.autoRaise = Math.min(1.0, BU3D.autoRaise + 0.7);
+    BU3D.autoCool = now + 12000;
+    BU3D.lodZoom = Math.min(16, Math.max(map3D.getZoom() + BU3D_LOD_DELTA + BU3D.autoRaise, BU3D.lodZoom));
+    set3DLodRanges();
+    updateLodChip(true);
+    B3D_FPS.times.length = 0; // 门槛重置，避免同一批样本反复触发
+  }
+}
+
+function toggle3DMode() {
+  const prevMode = BU3D.mode;
+  BU3D.mode = BU3D.mode === 'cumulative' ? 'incremental' : 'cumulative';
+  const prevYear = BU3D.year;
+  ['bu3d-city', 'bu3d-city-ov'].forEach((id) => {
+    if (map3D && map3D.getLayer(id)) map3D.setFilter(id, bu3dFilter());
+  });
+  if (prevMode === 'incremental') {
+    // 增量→累计：显示中新增了更早的年代，做生长动画
+    startEraRise(prevYear, prevMode);
+  } else {
+    cancelEraRise(true); // 累计→增量：可见集收缩，取消动画并复位全部 gh
+  }
+  apply3DControlsState();
+  render3DStats();
+}
+
+let applyCityToken = 0;
+async function applyCity(city) {
+  if (!map3D || !BU3D.meta) return;
+  const meta = (BU3D.meta.cities || []).find((m) => m.city === city);
+  if (!meta) { show3DError(`${city} 暂无 3D 建筑数据`); return; }
+  const token = ++applyCityToken;
+  BU3D.city = city;
+  BU3D.current = meta;
+  build3DCitySelect();
+  if (!BU3D.data[city]) {
+    const [detail, overview] = await Promise.all([
+      fetchJSON(dataUrl(`buildings/${city}.geojson`)),
+      fetchJSON(dataUrl(`buildings/${city}-overview.geojson`)),
+    ]);
+    // 为 setFeatureState（生长动画）与 queryRenderedFeatures 稳定身份编号；id=索引即可
+    (detail.features || []).forEach((f, i) => { f.id = i; });
+    (overview.features || []).forEach((f, i) => { f.id = i; });
+    BU3D.data[city] = detail;
+    BU3D.overview[city] = overview;
+    BU3D.spawn[city] = {}; // 换城重算生长次序缓存
+  }
+  if (applyCityToken !== token || !map3D || map3D._removed) return; // 期间又切了城，本次结果作废
+  const fc = BU3D.data[city];
+  const ov = BU3D.overview[city];
+  const cam = bu3dCamera(meta);
+  // 阈值 = 相机层级 + 1.4 级：同屏面积缩到窗口的约 1/14，逐栋层的体块数随之下降。
+  // autoRaise 为自适应降级余量（帧率过低时自动换回概览层），换城清零重新尝试细节层。
+  BU3D.autoRaise = 0;
+  BU3D.lodZoom = Math.min(16, cam.zoom + BU3D_LOD_DELTA);
+  if (!map3D.getSource('bu3d-src')) {
+    // buffer 由默认 128px 降到 24px：单栋楼体基本不跨瓦片，默认 buffer 会让楼在相邻瓦片
+    // 里重复 2–4 份上传；24px（z14 约 110m）覆盖绝大多数楼宽且跨缝楼仍闭合。
+    map3D.addSource('bu3d-src', { type: 'geojson', data: fc, maxzoom: 14, buffer: 24, tolerance: 0.375 });
+    map3D.addLayer({ id: 'bu3d-city', type: 'fill-extrusion', source: 'bu3d-src', minzoom: BU3D.lodZoom, paint: bu3dPaint(), filter: bu3dFilter() });
+  } else {
+    map3D.getSource('bu3d-src').setData(fc);
+    map3D.setLayerZoomRange('bu3d-city', BU3D.lodZoom, 24);
+  }
+  if (!map3D.getSource('bu3d-ov-src')) {
+    map3D.addSource('bu3d-ov-src', { type: 'geojson', data: ov, maxzoom: 13, buffer: 16, tolerance: 0.375 });
+    map3D.addLayer({ id: 'bu3d-city-ov', type: 'fill-extrusion', source: 'bu3d-ov-src', maxzoom: BU3D.lodZoom, paint: bu3dPaint(), filter: bu3dFilter() });
+  } else {
+    map3D.getSource('bu3d-ov-src').setData(ov);
+    map3D.setLayerZoomRange('bu3d-city-ov', 0, BU3D.lodZoom);
+  }
+  // 换城后必须清投标额 state：feature-state 按 id 持久化，setData 不清，旧城 id 会串到新城
+  cancelEraRise(true);
+  try {
+    map3D.easeTo(Object.assign(cam, {
+      duration: window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 700,
+    }));
+    // 切城相机到位后补载底图：新窗口一组瓦片若被天地图限流（429）拒掉，
+    // MapLibre 不会自动重发，会留下成片空洞——这里主动 reload 一轮。
+    map3D.once('moveend', () => repairBasemapTiles(map3D));
+  } catch (err) {
+    repairBasemapTiles(map3D); /* 容器尚未可见时 easeTo 抛错，直接补载一次 */
+  }
+  render3DLegend();
+  render3DNote();
+  render3DStats();
+  apply3DControlsState();
+  updateLodChip(true);
+}
+
+function set3DYear(year) {
+  const prev = BU3D.year;
+  BU3D.year = Number(year);
+  if (prev === BU3D.year) return;
+  ['bu3d-city', 'bu3d-city-ov'].forEach((id) => {
+    if (map3D && map3D.getLayer(id)) map3D.setFilter(id, bu3dFilter());
+  });
+  startEraRise(prev);
+  apply3DControlsState();
+  render3DStats();
+}
+
+function startPlay() {
+  stopPlay();
+  BU3D.playing = true;
+  let i = BU3D_YEARS.indexOf(BU3D.year);
+  if (i < 0 || i >= BU3D_YEARS.length - 1) i = -1;
+  apply3DControlsState();
+  const tick = () => {
+    if (!BU3D.playing) return;
+    i += 1;
+    if (i >= BU3D_YEARS.length) { stopPlay(); return; }
+    set3DYear(BU3D_YEARS[i]);
+    if (i >= BU3D_YEARS.length - 1) BU3D.timer = setTimeout(stopPlay, 1600);
+    else BU3D.timer = setTimeout(tick, 1400);
+  };
+  BU3D.timer = setTimeout(tick, 320);
+}
+
+function stopPlay() {
+  if (BU3D.timer) clearTimeout(BU3D.timer);
+  BU3D.timer = null;
+  BU3D.playing = false;
+  apply3DControlsState();
+}
+
+function apply3DControlsState() {
+  document.querySelectorAll('[data-3d-year]').forEach((btn) => {
+    const on = Number(btn.getAttribute('data-3d-year')) === BU3D.year;
+    btn.classList.toggle('active', on);
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+  const play = document.getElementById('btn-3d-play');
+  if (play) {
+    play.classList.toggle('active', BU3D.playing);
+    play.textContent = BU3D.playing ? '■ 停止' : '▶ 播放演化';
+    play.setAttribute('aria-pressed', BU3D.playing ? 'true' : 'false');
+  }
+  const sel = document.getElementById('lab-3d-city-select');
+  if (sel && sel.value !== BU3D.city) sel.value = BU3D.city;
+  const inc = document.getElementById('btn-3d-incremental');
+  if (inc) {
+    const on = BU3D.mode === 'incremental';
+    inc.classList.toggle('active', on);
+    inc.setAttribute('aria-pressed', on ? 'true' : 'false');
+    inc.textContent = on ? '只看新增' : '累计显示';
+  }
+}
+
+function summarizeCity(fc, meta) {
+  const ck = `${BU3D.city}|${BU3D.mode}|${BU3D.year}`;
+  if (BU3D.summaryCache[ck]) return BU3D.summaryCache[ck];
+  const feats = fc.features || [];
+  const inView = (era) => (BU3D.mode === 'incremental' ? era === BU3D.year : era <= BU3D.year);
+  const visible = [];
+  const eraCount = { 1990: 0, 2000: 0, 2014: 0, 2024: 0 };
+  const hs = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 };
+  let tallest = null;
+  for (const f of feats) {
+    const p = f.properties || {};
+    const era = Number(p.era);
+    if (eraCount[era] != null) eraCount[era] += 1;
+    if (!tallest || Number(p.h) > Number(tallest.h)) tallest = p;
+    if (inView(era)) {
+      visible.push(Number(p.h));
+      if (hs[p.hs] != null) hs[p.hs] += 1;
+    }
+  }
+  visible.sort((a, b) => a - b);
+  const pct = (q) => (visible.length ? visible[Math.min(visible.length - 1, Math.floor(visible.length * q))] : 0);
+  const out = {
+    total: feats.length,
+    visible: visible.length,
+    eraCount,
+    hs,
+    median: pct(0.5),
+    p90: pct(0.9),
+    tallest: tallest || { h: 0, era: 0 },
+    meta,
+  };
+  BU3D.summaryCache = { [ck]: out };
+  return out;
+}
+
+function render3DLegend() {
+  const host = document.getElementById('lab-3d-legend');
+  if (!host) return;
+  const fc = BU3D.data[BU3D.city];
+  if (!fc) { host.innerHTML = ''; return; }
+  const s = summarizeCity(fc, BU3D.current);
+  host.innerHTML = '';
+  host.appendChild(el('span', { class: 'lab-3d-legend-title', text: '首次进入建成区' }));
+  BU3D_YEARS.forEach((y) => {
+    const row = el('span', { class: 'lab-3d-legend-row' + (y <= BU3D.year ? '' : ' is-off') }, [
+      el('i', { class: 'era-' + y }),
+      el('span', { text: BU3D_ERA[y].label }),
+      el('em', { class: 'lab-3d-legend-count', text: formatNumber(s.eraCount[y]) }),
+    ]);
+    host.appendChild(row);
+  });
+}
+
+let lodChipText = '';
+function updateLodChip(force) {
+  const host = document.getElementById('lab-3d-lod');
+  if (!host || !map3D) return;
+  const z = map3D.getZoom();
+  const detail = z >= BU3D.lodZoom;
+  const m = BU3D.current;
+  const dn = (BU3D.data[BU3D.city] || { features: [] }).features.length;
+  const on = (BU3D.overview[BU3D.city] || { features: [] }).features.length;
+  const ratio = dn ? Math.round((100 * on) / dn) : 0;
+  const cell = (m && m.overview_cell_deg) || 0.0013;
+  const lat = m ? (m.window[0] + m.window[2]) / 2 : 30;
+  const cw = Math.round(cell * 111320 * Math.cos((lat * Math.PI) / 180));
+  const ch = Math.round(cell * 110570);
+  const degrade = BU3D.autoRaise > 0 ? ` · 帧率低，已临时上调细节阈值 ${BU3D.autoRaise.toFixed(1)} 级` : '';
+  const text = detail
+    ? `逐栋细节层 · ${formatNumber(dn)} 栋全量轮廓（放大中，软件渲染或低端显卡旋转可能变慢）`
+    : `远景概览层 · 每 ${cw}×${ch}m 网格保留最高一栋，${formatNumber(on)} / ${formatNumber(dn)} 栋（${ratio}%）`
+      + ` · 放大到 ${BU3D.lodZoom.toFixed(1)} 级切换逐栋轮廓${degrade}`;
+  // 连续旋转时每个 move 帧都会进来：内容没变就不重写 DOM（触发回流）
+  if (!force && text === lodChipText) { host.classList.toggle('is-detail', detail); return; }
+  lodChipText = text;
+  host.textContent = text;
+  host.classList.toggle('is-detail', detail);
+}
+
+function render3DNote() {
+  const host = document.getElementById('lab-3d-note');
+  if (!host || !BU3D.current) return;
+  const m = BU3D.current;
+  const kmx = ((m.window[3] - m.window[1]) * 111.32 * 0.92).toFixed(1);
+  const kmy = ((m.window[2] - m.window[0]) * 110.57).toFixed(1);
+  host.textContent = '轮廓：OpenStreetMap 建筑多边形（© OpenStreetMap contributors，ODbL），反映当前地图状态；该城市 OSM 收录可能不完整，轮廓稀疏处不代表实地没有建筑。'
+    + `年代：按建筑底面质心首次落入 AUE 建成区（1990 / 2000 / 2014）的时相推断，三期范围外记为「2014 后新增」，是年代分层而非竣工年份。`
+    + '高度：OSM height 标签 → building:levels × 3.2m → 同年代同类型中位数 → 同年代中位数 → 8m 兜底，按 1:1 米渲染。'
+    + `窗口：由建成区几何搜索确定的${m.name_cn}核心区（约 ${kmx} × ${kmy} km），非全市域。`;
+}
+
+function render3DStats() {
+  const host = document.getElementById('lab-3d-stats');
+  if (!host) return;
+  const fc = BU3D.data[BU3D.city];
+  if (!fc) { host.textContent = ''; return; }
+  const s = summarizeCity(fc, BU3D.current);
+  const n = s.total || 1;
+  const items = [
+    ['时相', BU3D.year === 2024 ? '现状（2014 后）' : String(BU3D.year)],
+    [BU3D.mode === 'incremental' ? '可见建筑（本年代新增）' : '可见建筑（累计）', `${formatNumber(s.visible)} / ${formatNumber(s.total)}`],
+    ['中位高度', `${Number(s.median).toFixed(1)} m`],
+    ['P90 高度', `${Number(s.p90).toFixed(1)} m`],
+    ['最高建筑（全时段）', `${Number(s.tallest.h).toFixed(1)} m`],
+    ['高度来源 实测/标签', `${((100 * s.hs[0]) / n).toFixed(1)}%`],
+    ['高度来源 层数推算', `${((100 * s.hs[1]) / n).toFixed(1)}%`],
+    ['高度来源 同类中位数', `${((100 * (s.hs[2] + s.hs[3])) / n).toFixed(1)}%`],
+    ['高度来源 兜底', `${((100 * s.hs[4]) / n).toFixed(1)}%`],
+  ];
+  // 老城占比过高时主动说明：窗口内的扩张主要发生在更外围，避免被误读为"城市没长高/没长大"
+  if (s.meta && s.meta.thinned_out > 0) {
+    items.push(['收录抽稀', `保留 ${formatNumber(s.total)}，舍弃 ${formatNumber(s.meta.thinned_out)}（按底面积优先）`]);
+  }
+  const topEra = Object.entries(s.eraCount).sort((a, b) => b[1] - a[1])[0];
+  if (topEra && s.total > 0 && topEra[1] / s.total >= 0.8) {
+    items.push(['年代构成提示',
+      `${BU3D_ERA[topEra[0]].label} 占 ${((100 * topEra[1]) / s.total).toFixed(0)}%，该城扩张多在窗口外围，可切「只看新增」看各年代增量`]);
+  }
+  host.innerHTML = '';
+  items.forEach(([label, value]) => {
+    host.appendChild(el('div', { class: 'lab-3d-stat' }, [
+      el('span', { class: 'lab-3d-stat-label', text: label }),
+      el('strong', { class: 'lab-3d-stat-value tabular-nums', text: value }),
+    ]));
+  });
+  render3DLegend();
+}
+
+// 3D 模块在长页底部，顶部「城市」下拉够不着，所以模块自带一个城市选择器。
+// 它只切换本模块，不会重载卷帘/图表；顶部下拉变化时由 apply3DControlsState 同步到这里。
+function build3DCitySelect() {
+  const sel = document.getElementById('lab-3d-city-select');
+  if (!sel || sel.options.length) return;
+  const names = {};
+  ((BU3D.meta && BU3D.meta.cities) || []).forEach((m) => { names[m.city] = m.name_cn; });
+  const keys = Object.keys(URBAN.cities).filter((c) => names[c]);
+  sel.innerHTML = '';
+  keys.forEach((c) => sel.appendChild(el('option', { value: c, text: names[c] })));
+  sel.value = BU3D.city;
+  sel.addEventListener('change', () => applyCity(sel.value).catch(() => {}));
+}
+
+function bind3DControls() {
+  document.querySelectorAll('[data-3d-year]').forEach((btn) => {
+    btn.addEventListener('click', () => { stopPlay(); set3DYear(Number(btn.getAttribute('data-3d-year'))); });
+  });
+  const play = document.getElementById('btn-3d-play');
+  if (play) play.addEventListener('click', () => { if (BU3D.playing) stopPlay(); else startPlay(); });
+  const inc = document.getElementById('btn-3d-incremental');
+  if (inc) inc.addEventListener('click', toggle3DMode);
+  const reset = document.getElementById('btn-3d-reset');
+  if (reset) {
+    reset.addEventListener('click', () => {
+      const m = BU3D.current;
+      if (!m) return;
+      const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      try {
+        const cam = bu3dCamera(m);
+        map3D.easeTo(Object.assign(cam, { duration: reduce ? 0 : 700 }));
+        BU3D.autoRaise = 0; // 复位视角同时重试细节层
+        BU3D.lodZoom = Math.min(16, cam.zoom + BU3D_LOD_DELTA);
+        set3DLodRanges();
+        updateLodChip(true);
+        cancelEraRise(true); // 复位时终止生长动画并把楼体归位满高
+      } catch (e2) {}
+    });
+  }
+  apply3DControlsState();
+}
+
+function show3DError(msg) {
+  const loading = document.getElementById('map-3d-loading');
+  if (loading) { loading.classList.remove('hide'); loading.textContent = msg; }
+  toast(msg, 'error', 4000);
+}
+
+// 天地图限流自动降级/恢复的页面提示（basemap.js 会在 10s 内 8 次栅格失败时切换备用底图）
+// 复用既有 .basemap-banner 样式（map.js 同款文案横幅），无 data-bm 属性，不影响无 survey 断言。
+function showBasemapFallbackBanner(msg, ms) {
+  try {
+    let bar = document.getElementById('wb-basemap-banner');
+    if (!bar) {
+      bar = el('div', { id: 'wb-basemap-banner', class: 'basemap-banner', role: 'status' });
+      document.body.appendChild(bar);
+    }
+    bar.textContent = msg;
+    bar.classList.add('show');
+    clearTimeout(bar._t);
+    bar._t = setTimeout(() => bar.classList.remove('show'), ms || 8000);
+  } catch (err) {}
+}
+document.addEventListener('wb-basemap-fallback', (e) => {
+  try {
+    const on = !!(e && e.detail && e.detail.fallback);
+    if (on) {
+      const name = (e.detail && e.detail.name) || '备用底图';
+      const attr = (e.detail && e.detail.attr) || '';
+      showBasemapFallbackBanner(`天地图今日瓦片配额受限，已临时启用备用底图 ${name}（${attr}），恢复后自动切回`, 10000);
+    } else {
+      showBasemapFallbackBanner('天地图底图已恢复（© 天地图 · GS(2023)336号）', 8000);
+    }
+  } catch (err) {}
+});

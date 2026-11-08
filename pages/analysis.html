@@ -8,14 +8,14 @@
   <link rel="icon" href="../assets/brand/favicon.png" type="image/png" />
   <title>分析实验室 · 山海新篇</title>
   <link rel="stylesheet" href="../vendor/maplibre/maplibre-gl.css" />
-  <link rel="stylesheet" href="../css/base.css?v=28" />
-  <link rel="stylesheet" href="../css/layout.css?v=28" />
-  <link rel="stylesheet" href="../css/components.css?v=28" />
-  <link rel="stylesheet" href="../css/map.css?v=28" />
-  <link rel="stylesheet" href="../css/blueyard.css?v=28" />
-  <link rel="stylesheet" href="../css/animation.css?v=28" />
-  <link rel="stylesheet" href="../css/responsive.css?v=28" />
-  <link rel="stylesheet" href="../css/responsive-blueyard.css?v=28" />
+  <link rel="stylesheet" href="../css/base.css?v=33" />
+  <link rel="stylesheet" href="../css/layout.css?v=33" />
+  <link rel="stylesheet" href="../css/components.css?v=33" />
+  <link rel="stylesheet" href="../css/map.css?v=33" />
+  <link rel="stylesheet" href="../css/blueyard.css?v=33" />
+  <link rel="stylesheet" href="../css/animation.css?v=33" />
+  <link rel="stylesheet" href="../css/responsive.css?v=33" />
+  <link rel="stylesheet" href="../css/responsive-blueyard.css?v=33" />
   <script src="../vendor/maplibre/maplibre-gl.js"></script>
   <script src="../vendor/echarts/echarts.min.js"></script>
   <script src="../vendor/turf/turf.min.js"></script>
@@ -49,6 +49,7 @@
     <nav class="lab-subnav" aria-label="实验室模块">
       <div class="container lab-subnav-inner">
         <a href="#lab-builtup">建成区演变</a>
+        <a href="#lab-builtup-3d">3D 建筑演化</a>
         <a href="#lab-buffer">缓冲区共现</a>
         <a href="#lab-services">服务与入库</a>
       </div>
@@ -100,6 +101,42 @@
           <p class="lab-chart-caption" id="bu-chart-caption" hidden></p>
         </div>
         <p id="a-note" class="lab-note" aria-live="polite"></p>
+
+        <div class="lab-3d" id="lab-builtup-3d">
+          <div class="lab-3d-head">
+            <div class="lab-3d-copy">
+              <span class="lab-index">3D / Building Evolution</span>
+              <h3 class="lab-3d-title">九城建筑三维演化：真实轮廓 × 建成区年代</h3>
+              <p class="lab-3d-desc">用 <b>OpenStreetMap 逐栋真实建筑轮廓</b>叠加 <b>AUE 建成区范围</b>：每栋楼按其底面首次落入建成区的时相归入 1990 / 2000 / 2014 / 现状四个年代层，颜色表示年代、高度按 1:1 米渲染。拖动时间轴或点播放，就能看见城市从老城向外生长、同时向上加高。城市可在本模块的「3D 城市」下拉框里直接切换，也可用页面顶部的「城市」下拉联动。</p>
+            </div>
+            <div class="lab-3d-tools">
+              <div class="lab-3d-city">
+                <span>3D 城市</span>
+                <select id="lab-3d-city-select" aria-label="选择 3D 建筑城市"></select>
+                <em>只切换本模块 · 上方「城市」下拉变化时会同步过来</em>
+              </div>
+              <div class="btn-group lab-3d-timeline" role="group" aria-label="年代时间轴">
+                <button class="btn" type="button" data-3d-year="1990" aria-pressed="false">1990</button>
+                <button class="btn" type="button" data-3d-year="2000" aria-pressed="false">2000</button>
+                <button class="btn active" type="button" data-3d-year="2014" aria-pressed="true">2014</button>
+                <button class="btn" type="button" data-3d-year="2024" aria-pressed="false">现状</button>
+              </div>
+              <button class="btn btn-ghost btn-sm" type="button" id="btn-3d-incremental" aria-pressed="false">累计显示</button>
+              <button class="btn btn-ghost btn-sm" type="button" id="btn-3d-play" aria-pressed="false">▶ 播放演化</button>
+              <button class="btn btn-ghost btn-sm" type="button" id="btn-3d-reset">复位视角</button>
+            </div>
+          </div>
+
+          <div class="lab-3d-map" id="map-3d" role="region" aria-label="九城建筑三维演化地图">
+            <div class="map-loading" id="map-3d-loading" role="status"><div class="spinner"></div>3D 建筑轮廓加载中</div>
+            <aside class="lab-3d-legend" id="lab-3d-legend" aria-label="建筑高度图例"></aside>
+            <div class="lab-3d-hint">拖动旋转 · 右键/双指倾斜 · 滚轮缩放</div>
+          </div>
+
+          <p class="lab-3d-lod" id="lab-3d-lod" role="status"></p>
+          <div class="lab-3d-stats" id="lab-3d-stats" aria-live="polite"></div>
+          <p class="lab-3d-note" id="lab-3d-note">数据：EU JRC GHSL R2023A（GHS-BUILT-V / GHS-BUILT-S，约 90m 原格网）；范围：深圳市级行政边界内，按约 370m 网格聚合；年份：1990 / 2015（GHSL 时相，2015 为距 AUE 2014 最近的时相，不与 AUE 逐格叠加）。图中高度为模型估算值；垂直夸张只改变显示比例、不改变数据，默认 ×4 是为了让 10–60m 的平均楼高在区市级视距下可读，可切回 ×1 真实比例。</p>
+        </div>
       </section>
 
       <section class="lab-section" id="lab-buffer">
@@ -206,7 +243,7 @@
 
   <script type="module">
     import { initShell } from '../js/main.js?v=27';
-    import { initAnalysisPage } from '../js/analysis.js?v=27';
+    import { initAnalysisPage } from '../js/analysis.js?v=33';
     initShell();
     initAnalysisPage();
   </script>
