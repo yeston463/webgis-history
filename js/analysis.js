@@ -2181,7 +2181,7 @@ document.addEventListener('wb-basemap-fallback', (e) => {
     if (on) {
       const name = (e.detail && e.detail.name) || '备用底图';
       const attr = (e.detail && e.detail.attr) || '';
-      showBasemapFallbackBanner(`天地图今日瓦片配额受限，已临时启用备用底图 ${name}（${attr}），恢复后自动切回`, 10000);
+      showBasemapFallbackBanner(`天地图今日瓦片配额受限，已临时切换到${name}（${attr}），恢复后自动切回`, 10000);
     } else {
       showBasemapFallbackBanner('天地图底图已恢复（© 天地图 · GS(2023)336号）', 8000);
     }

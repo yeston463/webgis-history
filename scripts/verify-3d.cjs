@@ -294,16 +294,22 @@ const YEARS = [1990, 2000, 2014, 2024];
     await page.click('[data-3d-year="1990"]');
     await page.waitForTimeout(2300); // 收缩复位，1990 段动画自然结束
     await page.click('[data-3d-year="2000"]');
-    await page.waitForTimeout(520);
-    const during = await page.evaluate((ids) => {
-      const m = window.__bu3D.map;
-      let withGh = 0;
-      for (const id of ids) {
-        const st = m.getFeatureState({ source: 'bu3d-ov-src', id });
-        if (st && st.gh != null && Number(st.gh) >= 0) withGh += 1;
-      }
-      return { withGh, total: ids.length };
-    }, sample.ids);
+    // 采样窗口改为有界轮询：动画总长 ~590ms 恰在旧采样点 520ms 附近，换装/网络抖动
+    // 会把首个 rAF 延后到采样点之后造成 0/40 假阴性；轮询到首个 gh 写入即可。
+    const during = { withGh: 0, total: sample.ids.length };
+    for (let i = 0; i < 12 && during.withGh === 0; i++) {
+      await page.waitForTimeout(100);
+      const c = await page.evaluate((ids) => {
+        const m = window.__bu3D.map;
+        let withGh = 0;
+        for (const id of ids) {
+          const st = m.getFeatureState({ source: 'bu3d-ov-src', id });
+          if (st && st.gh != null && Number(st.gh) >= 0) withGh += 1;
+        }
+        return withGh;
+      }, sample.ids);
+      during.withGh = c;
+    }
     await page.waitForTimeout(2400);
     const after = await page.evaluate((ids) => {
       const m = window.__bu3D.map;

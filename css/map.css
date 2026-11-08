@@ -112,6 +112,34 @@ a.maplibregl-ctrl-logo {
   transform: translate(-50%, 0);
 }
 
+/* ---------- 自绘降级底图的中文注记（basemap.js 限流降级时使用的 DOM 标签） ---------- */
+/* 元素的定位/transform 由 maplibregl.Marker 内部管理，这里只做视觉样式 */
+.wbfb-label {
+  padding: 1px 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  text-shadow: 0 1px 2px rgba(243, 237, 226, 0.9), 0 0 4px rgba(243, 237, 226, 0.7);
+  font-family: var(--font-body);
+}
+.wbfb-label-prov {
+  color: #6d5c44;
+  font-size: 12.5px;
+  letter-spacing: 1.5px;
+}
+.wbfb-label-city {
+  color: #3c2f1f;
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+.wbfb-label-dash {
+  color: #8a4a1e;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 3px;
+}
+
+
 /* ---------- Markers ---------- */
 @keyframes pulse {
   0% { transform: scale(1); opacity: 0.75; }

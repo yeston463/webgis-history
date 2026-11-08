@@ -1,9 +1,13 @@
-// verify-fallback.cjs — 确定性验证天地图限流的自动降级与恢复（多源级联）：
-//   降级链：Esri 灰底 Canvas → OSM FR HOT → OSM 官方标准瓦片（tiered，探测可用性后启用当前档）
-// 1) 劫持天地图全部 429 + 链首 Esri 全部 500 → 应级联到 OSM-FR HOT 并显示对应署名横幅；
-//    天地图图层隐藏、更低的 OSM 官方档保持隐藏、兜底层序在 3D 建筑之下；
-// 2) 放开天地图（返回 canvas 生成的真实 PNG，满足 >500B 校验）→ 自动切回天地图。
-// 用法：node scripts/verify-fallback.cjs   （需先启动 node server/server.cjs）
+// verify-fallback.cjs - 确定性验证天地图限流的自动降级与恢复（自绘中国标准矢量底图）
+// 2026-11-08 合规改造：降级底图不再使用任何外国栅格源（Esri/OSM 无九段线、把台湾标注成
+// 独立国家），改为仓库自绘「中国标准矢量底图」：省级陆地填充/省界线 + 十段线虚线。
+// 1) 劫持天地图全部 429 → 天地图图层隐藏，自绘降级图层（wb-fb-land / wb-fb-prov /
+//    wb-fb-dash）可见；不得存在任何外国栅格备用层（wb-esr/wb-hot/wb-osm）；
+//    横幅披露「自绘中国标准矢量底图」；十段线源恰含 10 段折线；
+//    降级图层位于 3D 建筑之下（不遮楼），中文注记按缩放分级切换（省级 ↔ 焦点城市）。
+// 2) 放开天地图（返回 canvas 生成的真实 PNG，满足 >500B 校验）→ 自动切回天地图，
+//    自绘降级图层隐藏、DOM 注记拆除。
+// 用法：需先启动 node server/server.cjs，然后 node scripts/verify-fallback.cjs
 const { chromium } = require('playwright');
 const BASE = process.env.BASE_URL || 'http://127.0.0.1:8000';
 const results = [];
@@ -16,12 +20,8 @@ function log(name, ok, detail) {
   const browser = await chromium.launch({ args: ['--no-sandbox'] });
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
   const page = await ctx.newPage();
-  page.on('console', (m) => {
-    if (/\[tdtHealth\]/.test(m.text())) console.log('  (page) ' + m.text().replace(/\[tdtHealth\] /, '').trim());
-  });
 
   let throttleTdt = true;
-  let killEsri = true; // 链首持续被拒，逼迫级联到 OSM FR HOT 档
   let fakeTilePng = null;
   const ensureFakePng = async () => {
     if (fakeTilePng) return fakeTilePng;
@@ -44,48 +44,87 @@ function log(name, ok, detail) {
   await page.route(/tianditu\.gov\.cn/, (route) => (throttleTdt
     ? route.fulfill({ status: 429, body: 'throttled', contentType: 'text/plain' })
     : pngFulfill(route)));
-  await page.route(/arcgisonline\.com/, (route) => (killEsri
-    ? route.fulfill({ status: 500, body: 'down', contentType: 'text/plain' })
-    : pngFulfill(route)));
-  await page.route(/openstreetmap\.fr|openstreetmap\.org/, (route) => pngFulfill(route));
 
   await page.goto(`${BASE}/pages/analysis.html?city=shenzhen`, { waitUntil: 'load', timeout: 40000 });
   await page.evaluate(() => document.getElementById('lab-builtup-3d').scrollIntoView({ block: 'center' }));
   await page.waitForFunction(() => !!(window.__bu3D && window.__bu3D.map && window.__bu3D.map.getLayer('bu3d-city')), { timeout: 90000 });
   await page.waitForTimeout(1200);
 
-  /* 1. 限流 → 自动降级，且链首 Esri 不可达时级联到 OSM FR HOT 档 */
+  /* 1. 限流 → 隐藏天地图、启用自绘矢量降级底图 */
   const t0 = Date.now();
-  const cascaded = await page.waitForFunction(() => {
+  const swapped = await page.waitForFunction(() => {
     const m = window.__bu3D.map;
-    return !!m.getLayer('wb-hot')
-      && m.getLayoutProperty('wb-hot', 'visibility') === 'visible'
-      && m.getLayer('wb-esr') && m.getLayoutProperty('wb-esr', 'visibility') === 'none'
-      && ['tdt-vec', 'tdt-cva'].every((id) => m.getLayoutProperty(id, 'visibility') === 'none');
+    return ['tdt-vec', 'tdt-cva'].every((id) => m.getLayoutProperty(id, 'visibility') === 'none')
+      && ['wb-fb-land', 'wb-fb-prov', 'wb-fb-dash'].every(
+        (id) => !!m.getLayer(id) && m.getLayoutProperty(id, 'visibility') === 'visible');
   }, { timeout: 30000 }).then(() => true).catch(() => false);
-  log('天地图 429 且链首 Esri 不可达 → 级联到 OSM-FR HOT 并隐藏天地图', cascaded,
-    cascaded ? `${((Date.now() - t0) / 1000).toFixed(1)}s 内级联` : '30s 内未按预期级联');
-  if (!cascaded) {
-    await page.screenshot({ path: 'test-shots/fallback-cascade-failed.png' });
+  log('天地图 429 → 隐藏天地图并启用自绘降级底图（陆地/省界/十段线）', swapped,
+    swapped ? `${((Date.now() - t0) / 1000).toFixed(1)}s 内完成切换` : '30s 内未按预期切换');
+  if (!swapped) {
+    await page.screenshot({ path: 'test-shots/fallback-swap-failed.png' });
     await browser.close();
     process.exit(1);
   }
-  const bannerText = await page.evaluate(() => (document.getElementById('wb-basemap-banner') || {}).textContent || '');
-  log('降级横幅含当前档位署名（OSM FR HOT）', /OSM FR HOT/.test(bannerText), bannerText.slice(0, 70));
 
-  const stHot = await page.evaluate(() => {
+  const noForeign = await page.evaluate(() => {
+    const m = window.__bu3D.map;
+    return ['wb-esr', 'wb-hot', 'wb-osm'].filter((id) => !!m.getLayer(id));
+  });
+  log('降级时不存在任何外国栅格备用层（无 Esri/OSM）', noForeign.length === 0, JSON.stringify(noForeign));
+
+  const dashInfo = await page.waitForFunction(() => {
+    const m = window.__bu3D.map;
+    const segs = Array.isArray(m._wbFbDashCoords) ? m._wbFbDashCoords.length : 0;
+    const probe = { segs };
+    if (segs) {
+      probe.first = m._wbFbDashCoords[0][0];
+      const lastLine = m._wbFbDashCoords[m._wbFbDashCoords.length - 1];
+      probe.last = lastLine[lastLine.length - 1];
+    }
+    return probe.segs ? probe : null;
+  }, { timeout: 15000 }).then((h) => h.jsonValue()).catch(() => null);
+  log('十段线源恰含 10 段折线（南海诸岛断续线，内嵌几何校验首末坐标）',
+    !!dashInfo && dashInfo.segs === 10
+      && Math.abs(dashInfo.first[0] - 109.5176) < 0.01
+      && Math.abs(dashInfo.last[1] - 16.2656) < 0.01,
+    JSON.stringify(dashInfo));
+
+  const order = await page.evaluate(() => {
     const m = window.__bu3D.map;
     const ids = m.getStyle().layers.map((l) => l.id);
-    return {
-      hot: m.getLayoutProperty('wb-hot', 'visibility'),
-      osm: m.getLayer('wb-osm') ? m.getLayoutProperty('wb-osm', 'visibility') : 'NO-LAYER',
-      hotIdx: ids.indexOf('wb-hot'),
-      bldIdx: Math.min(...['bu3d-city', 'bu3d-city-ov'].map((id) => ids.indexOf(id)).filter((i) => i >= 0)),
-    };
+    const fbIdx = Math.max(...['wb-fb-land', 'wb-fb-prov', 'wb-fb-dash'].map((id) => ids.indexOf(id)));
+    const bldIdx = Math.min(...['bu3d-city', 'bu3d-city-ov'].map((id) => ids.indexOf(id)).filter((i) => i >= 0));
+    return { fbIdx, bldIdx };
   });
-  log('未启用的更下一档保持隐藏', stHot.hot === 'visible' && stHot.osm === 'none', JSON.stringify(stHot));
-  log('兜底图层位于 3D 建筑之下（不遮楼）', stHot.hotIdx >= 0 && stHot.hotIdx < stHot.bldIdx,
-    `wb-hot 层序=${stHot.hotIdx}, 建筑层序=${stHot.bldIdx}`);
+  log('降级图层位于 3D 建筑之下（不遮楼）', order.fbIdx >= 0 && order.fbIdx < order.bldIdx,
+    `fb 层序=${order.fbIdx}, 建筑层序=${order.bldIdx}`);
+
+  const bannerText = await page.evaluate(() => (document.getElementById('wb-basemap-banner') || {}).textContent || '');
+  log('降级横幅披露「自绘中国标准矢量底图」署名', /自绘中国标准矢量底图/.test(bannerText), bannerText.slice(0, 70));
+
+  /* 1b. 中文注记分级（缓冲区地图 __bufMap 无 minzoom 锁）：z4 标省级，z11 标焦点城市 */
+  await page.waitForFunction(() => !!(window.__bufMap && window.__bufMap._wbFbDashCoords), { timeout: 30000 });
+  await page.evaluate(() => window.__bufMap.jumpTo({ center: [116.5, 33], zoom: 4, pitch: 0, bearing: 0 }));
+  const provOnCityOff = await page.waitForFunction(() => {
+    const el = window.__bufMap.getContainer();
+    const vis = (q) => [...el.querySelectorAll(q)]
+      .filter((n) => n.style.display !== 'none').length;
+    return { prov: vis('.wbfb-label-prov'), city: vis('.wbfb-label-city'), dash: vis('.wbfb-label-dash') };
+  }, { timeout: 10000 }).then((h) => h.jsonValue()).catch(() => null);
+  log('低层级（z4）注记：省级 ≥20 可见、焦点城市隐藏、南海诸岛可见',
+    !!provOnCityOff && provOnCityOff.prov >= 20 && provOnCityOff.city === 0 && provOnCityOff.dash >= 1,
+    JSON.stringify(provOnCityOff));
+  await page.screenshot({ path: 'test-shots/fallback-vector-base.png' });
+
+  await page.evaluate(() => window.__bufMap.jumpTo({ zoom: 11 }));
+  const cityOnProvOff = await page.waitForFunction(() => {
+    const el = window.__bufMap.getContainer();
+    const vis = (q) => [...el.querySelectorAll(q)]
+      .filter((n) => n.style.display !== 'none').length;
+    return { prov: vis('.wbfb-label-prov'), city: vis('.wbfb-label-city') };
+  }, { timeout: 10000 }).then((h) => h.jsonValue()).catch(() => null);
+  log('高层级（z11）注记：焦点城市 9 域可见、省级隐藏', !!cityOnProvOff && cityOnProvOff.city === 9 && cityOnProvOff.prov === 0,
+    JSON.stringify(cityOnProvOff));
 
   /* 2. 限流解除 → 自动切回天地图（探测 60s 间隔 ×2 轮） */
   throttleTdt = false;
@@ -96,17 +135,19 @@ function log(name, ok, detail) {
     await page.waitForTimeout(15000);
     const probe = await page.evaluate(() => ({
       ticks: window.__tdtProbeTicks || 0,
+      markers: window.__bu3D.map.getContainer().querySelectorAll('.wbfb-label').length,
       vec: window.__bu3D.map.getLayoutProperty('tdt-vec', 'visibility'),
       cva: window.__bu3D.map.getLayoutProperty('tdt-cva', 'visibility'),
-      esr: window.__bu3D.map.getLayer('wb-esr') ? window.__bu3D.map.getLayoutProperty('wb-esr', 'visibility') : 'none',
-      hot: window.__bu3D.map.getLayer('wb-hot') ? window.__bu3D.map.getLayoutProperty('wb-hot', 'visibility') : 'none',
-      osm: window.__bu3D.map.getLayer('wb-osm') ? window.__bu3D.map.getLayoutProperty('wb-osm', 'visibility') : 'none',
+      fb: ['wb-fb-land', 'wb-fb-prov', 'wb-fb-dash'].map((id) => {
+        const l = window.__bu3D.map.getLayer(id);
+        return l ? window.__bu3D.map.getLayoutProperty(id, 'visibility') : 'none';
+      }),
     }));
     probeTicksSeen = probe.ticks;
     if (probe.vec === 'visible' && probe.cva === 'visible'
-      && ['esr', 'hot', 'osm'].every((k) => probe[k] === 'none')) { recovered = true; break; }
+      && probe.fb.every((v) => v === 'none') && probe.markers === 0) { recovered = true; break; }
   }
-  log('限流解除（探测成功）→ 自动切回天地图', recovered,
+  log('限流解除（探测成功）→ 自动切回天地图并拆除自绘注记', recovered,
     `${((Date.now() - tRecover) / 1000).toFixed(1)}s 内切回, 探测 ticks=${probeTicksSeen}`);
   await page.screenshot({ path: 'test-shots/fallback-recovered.png' });
 

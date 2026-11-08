@@ -11,6 +11,7 @@ import {
   TIANDITU_MAX_ZOOM,
   tiandituTileURL,
 } from './config.js';
+import { fetchJSON, dataUrl, el } from './utils.js';
 
 export const BASE_ONLINE_LAYERS = ['tdt-vec', 'tdt-cva'];
 
@@ -127,121 +128,216 @@ function registerTdtProtocol() {
 }
 registerTdtProtocol();
 
-/* -------------------------- 备用底图与限流自动降级 --------------------------
- * tk 当日配额耗尽时每张瓦片都 429，客户端重试救不了配额，页面只剩米色背景。
+/* ------------------- 限流自动降级：自绘中国标准矢量底图 -------------------
+ * tk 当日配额耗尽/限流时每张瓦片都 429，客户端重试救不了配额，页面只剩米色背景。
  * 天地图栅格请求收口在 tdtQ:// 协议里，天然拥有全网状态：
- *   - 10s 内连续 ≥8 次失败 → 全部已注册地图把天地图图层隐藏、显示备用栅格底图，
- *     并发事件 `wb-basemap-fallback` 供页面提示与署名更新；同时停发天地图瓦片，
- *     让配额冷却，并每 60s 用单张样例瓦片探测恢复。
+ *   - 10s 内连续 ≥8 次失败 → 全部已注册地图把天地图图层隐藏、切换为「自绘中国标准
+ *     矢量底图」，并广播事件 `wb-basemap-fallback` 供页面提示与署名更新；同时停发
+ *     天地图瓦片让配额冷却，每 60s 用单张样例瓦片探测恢复。
  *   - 连续 2 次探测成功（间隔 60s）→ 自动切回天地图。
- * 备用底图是多源开源降级链，换装时「并行探档·最快到者优先 → 当前视野瓦片预取入 HTTP 缓存
- * → 再显示图层（首图即现）」；每档要求 WGS84/3857 同基准、免密钥、CORS 开放：
- *   1) Esri Light Gray Canvas … © Esri（灰色底图，大陆可达，首连较慢属正常）
- *   2) OSM-FR HOT … © OpenStreetMap contributors（浅暖风格，大陆可达性较好）
- *   3) OSM 标准瓦片 … © OpenStreetMap contributors（部分网络不可达，探测自动跳过）
- * 排除项：CARTO 免密端点已强制门禁（返回 "API KEY REQUIRED" 占位图 200）；
- * 高德/腾讯/百度系 GCJ-02/BD-09 与 OSM 建筑轮廓整体偏移 300–500m 不可对齐。
- * 备用底图是「限流兜底」，主底图仍是天地图（GS(2023)336号），恢复即回。
+ * 2026-11-08 合规改造：备用底图不再使用任何外国栅格源（此前降级链会落到
+ * Esri / OSM 瓦片——两者都不含九段线，还把台湾标注成独立国家的 "TAIWAN" 字样，
+ * 作为面向公众的中国主题地图属于"问题地图"，须杜绝）。降级底图改为仓库自绘：
+ *   - 陆地与省级行政区划（含台湾省、港澳特别行政区）：data/china-provinces.geojson；
+ *   - 十段线（南海诸岛断续线，10 段）：几何描摹自民政部全国行政区划信息查询平台
+ *     xzqh.mca.gov.cn 的标准底图（geojson.cn 十段线数据集整理，OSM relation 3939323
+ *     校核），常量内嵌、虚线绘出；
+ *   - 中文注记（省级地名、南海诸岛、焦点城市）由 DOM 标签实时绘出，只表达中国
+ *     行政区划，不渲染任何外国地图内容；配额恢复后自动切回天地图主底图。
  */
 const TDT_STALL_FAILS = 8;
 const TDT_STALL_WINDOW_MS = 10000;
 const TDT_RECOVER_PROBES = 2;
 const TDT_PROBE_INTERVAL_MS = 60000;
-// 多源降级链：id 唯一、tiles 为 MapLibre raster 模板数组、maxzoom 为该源原生上限
-const WB_FALLBACK_CHAIN = [
-  {
-    id: 'wb-esr',
-    label: 'Esri 灰底 Canvas',
-    attr: '© Esri · World Light Gray Canvas',
-    tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}'],
-    maxzoom: 16,
-    probe: { z: 9, y: 223, x: 419 },
-  },
-  {
-    id: 'wb-hot',
-    label: 'OSM FR HOT 瓦片',
-    attr: '© OpenStreetMap contributors · 风格 HOT（Humanitarian OSM Team）via openstreetmap.fr',
-    tiles: ['a', 'b', 'c'].map((s) => `https://${s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png`),
-    maxzoom: 19,
-    probe: { z: 9, y: 223, x: 419 },
-  },
-  {
-    id: 'wb-osm',
-    label: 'OSM 官方标准瓦片',
-    attr: '© OpenStreetMap contributors',
-    tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-    maxzoom: 19,
-    probe: { z: 9, y: 223, x: 419 },
-  },
-];
-const WB_FALLBACK_PAINT = { 'raster-opacity': 0.92, 'raster-saturation': -0.35, 'raster-contrast': -0.03 };
-const TDT_FALLBACK_TIMEOUT_MS = 3000;
+
 const basemapWatchers = new Set();
-const tdtHealth = { fails: [], swapped: false, probeWins: 0, probeTimer: null, chainIdx: 0 };
+const tdtHealth = { fails: [], swapped: false, probeWins: 0, probeTimer: null };
 
-function wbFallbackSourceId(idx) { return WB_FALLBACK_CHAIN[idx].id; }
+/* 自绘矢量降级底图的图层标识 */
+const WB_FB_SRC_LAND = 'wb-fb-land-src';
+const WB_FB_SRC_DASH = 'wb-fb-dash-src';
+const WB_FB_L_LAND = 'wb-fb-land';
+const WB_FB_L_PROV = 'wb-fb-prov';
+const WB_FB_L_DASH = 'wb-fb-dash';
 
-function wbProbeUrl(item) {
-  return item.tiles[0]
-    .replace('{z}', item.probe ? item.probe.z : 5)
-    .replace('{x}', item.probe ? item.probe.x : 13)
-    .replace('{y}', item.probe ? item.probe.y : 6);
+// 十段线：南海诸岛断续线 10 段，描摹自民政部 xzqh.mca.gov.cn 标准行政区划底图
+// （geojson.cn 十段线数据集整理，OSM relation 3939323 校核）。
+const WB_TEN_DASH_COORDS = [
+  [[109.51763678906526, 16.360467782665847], [109.72339159230361, 16.05587198177934], [109.8780414893003, 15.766823920473868], [109.96506402665503, 15.526031073258686], [109.98526818797363, 15.335615618596712]],
+  [[110.48331454715199, 12.431407837351566], [110.48240767589328, 12.085792287259398], [110.45136562643113, 11.863835000833953], [110.25652028695671, 11.393616070326182]],
+  [[108.3388949586325, 7.26656318024262], [108.30727608084116, 6.727803403200289], [108.35631901989032, 6.112648053307836]],
+  [[111.94112275674237, 3.553559321848772], [112.40151782268552, 3.646409974664658], [112.92104341055976, 3.845112027649191]],
+  [[115.69079809651517, 7.29016984601141], [116.4095482213759, 8.137962397303875]],
+  [[118.63503455703679, 11.080904139262175], [118.85587024190139, 11.457907321145406], [119.10128629647166, 12.062751715859875], [119.12181771101825, 12.135585760471585]],
+  [[119.60808384544805, 18.143451232827125], [119.91075760817219, 18.77194701315816], [120.11918953031866, 19.117669954512905]],
+  [[121.40591812413318, 20.8001943859176], [122.12216430894797, 21.716094829922323]],
+  [[122.80328441666389, 23.665545127578547], [123.00481138309124, 24.74934291726869]],
+  [[119.16836075308866, 15.107448879733406], [119.16981236678279, 15.755038547478351], [119.17823197590195, 16.265658015720753]],
+];
+
+// 降级底图上的焦点城市注记（与 data/cities.json 四城及 3D 模块九城一致）
+const WB_FB_CITY_LABELS = [
+  { name: '深圳', lng: 114.0579, lat: 22.5431 },
+  { name: '上海', lng: 121.4737, lat: 31.2304 },
+  { name: '广州', lng: 113.2644, lat: 23.1291 },
+  { name: '厦门', lng: 118.0894, lat: 24.4798 },
+  { name: '北京', lng: 116.4074, lat: 39.9042 },
+  { name: '杭州', lng: 120.1551, lat: 30.2741 },
+  { name: '武汉', lng: 114.3055, lat: 30.5928 },
+  { name: '成都', lng: 104.0668, lat: 30.5728 },
+  { name: '青岛', lng: 120.3826, lat: 36.0671 },
+];
+
+// 降级底图数据（省级 GeoJSON 只拉一次，全页面共享；失败的 Promise 可重置重试）
+let wbFbDataPromise = null;
+function wbFbGeoJson() {
+  if (!wbFbDataPromise) {
+    wbFbDataPromise = fetchJSON(dataUrl('china-provinces.geojson'), { noCache: true })
+      .then((provinces) => ({ provinces }))
+      .catch((err) => { wbFbDataPromise = null; throw err; });
+  }
+  return wbFbDataPromise;
 }
 
-// 选档：并行探测，**最快返回健康图片者胜出**（首图延迟优先），链序仅作并列时的稳定性；
-// 全部失败/超时 → 回落链首。健康图片 = 200 且 content-type: image/*（防 CARTO 占位图/错误页）。
-function pickFallbackIdx() {
-  return new Promise((resolve) => {
-    let done = false;
-    const finish = (i) => { if (!done) { done = true; resolve(i); } };
-    WB_FALLBACK_CHAIN.forEach((item, i) => {
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), TDT_FALLBACK_TIMEOUT_MS);
-      fetch(wbProbeUrl(item), { signal: ctrl.signal, credentials: 'omit', referrerPolicy: 'no-referrer-when-downgrade' })
-        .then((res) => {
-          clearTimeout(timer);
-          const ct = res.headers.get('content-type') || '';
-          if (res.ok && ct.indexOf('image/') === 0) finish(i);
-        })
-        .catch(() => clearTimeout(timer));
+// 首个地图注册后低优先级预取（layers/gis-tools 多半已把同一份 data 写进 utils 缓存，
+// 这里命中即零网络零解析）：保证降级换装瞬时完成，不把首次解析塞进动画/滚动关键时段
+function wbFbPreload() {
+  if (wbFbDataPromise) return;
+  setTimeout(() => { try { wbFbGeoJson().catch(() => {}); } catch (e) {} }, 300);
+}
+
+/* —— 自绘降级底图：图层与注记 —— */
+
+// 省面几何的顶点平均质心（注记定位用，零依赖且精度足够）
+function polygonCentroid(geom) {
+  try {
+    const polys = geom.type === 'Polygon' ? [geom.coordinates]
+      : geom.type === 'MultiPolygon' ? geom.coordinates : [];
+    let sx = 0, sy = 0, n = 0;
+    for (const poly of polys) for (const ring of poly) for (const [x, y] of ring) { sx += x; sy += y; n += 1; }
+    return n ? { lng: sx / n, lat: sy / n } : null;
+  } catch (e) { return null; }
+}
+
+// 按需创建降级底图图层（陆地填充 / 省界线 / 十段线），锚点保证落在 3D 建筑与业务图层之下
+function ensureFbLayers(map, provinces) {
+  if (!map.getSource(WB_FB_SRC_LAND)) {
+    map.addSource(WB_FB_SRC_LAND, { type: 'geojson', data: provinces });
+  }
+  if (!map.getSource(WB_FB_SRC_DASH)) {
+    map.addSource(WB_FB_SRC_DASH, {
+      type: 'geojson',
+      data: {
+        type: 'FeatureCollection',
+        features: [{
+          type: 'Feature',
+          properties: { name: '十段线' },
+          geometry: { type: 'MultiLineString', coordinates: WB_TEN_DASH_COORDS },
+        }],
+      },
     });
-    setTimeout(() => finish(0), TDT_FALLBACK_TIMEOUT_MS + 120);
-  });
-}
-
-function ensureFallbackSources(map) {
-  // 底图类图层必须插到业务图层之下：3D 建筑是 fill-extrusion，若在降级时把栅格
-  // addLayer 到栈顶，会整片盖住楼体。锚点取「第一个存在的天地图/建筑图层」。
+    // 供 verify-fallback.cjs 做数据级断言（不依赖 MapLibre source 内部实现）
+    map._wbFbDashCoords = WB_TEN_DASH_COORDS;
+    map._wbFbProvNames = (() => {
+      try {
+        const names = new Set();
+        for (const f of (provinces.features || [])) {
+          const n = f.properties && f.properties.name;
+          if (n && !/^(香港|澳门)特别行政区$/.test(n)) names.add(n);
+        }
+        return [...names];
+      } catch (e) { return []; }
+    })();
+  }
   const anchor = ['bu3d-city-ov', 'bu3d-city', 'tdt-vec', 'tdt-cva']
     .find((id) => map.getLayer(id)) || undefined;
-  for (const item of WB_FALLBACK_CHAIN) {
-    if (!map.getSource(item.id)) {
-      map.addSource(item.id, {
-        type: 'raster',
-        tiles: item.tiles,
-        tileSize: 256,
-        minzoom: 0,
-        maxzoom: item.maxzoom,
-        attribution: item.attr,
-      });
-    }
-    if (!map.getLayer(item.id)) {
-      map.addLayer({ id: item.id, type: 'raster', source: item.id, paint: WB_FALLBACK_PAINT, layout: { visibility: 'none' } }, anchor);
-    }
+  let at = anchor;
+  if (!map.getLayer(WB_FB_L_LAND)) {
+    map.addLayer({
+      id: WB_FB_L_LAND, type: 'fill', source: WB_FB_SRC_LAND,
+      paint: { 'fill-color': '#ece2cc', 'fill-opacity': 0.97 },
+    }, at);
+    at = WB_FB_L_LAND;
+  }
+  if (!map.getLayer(WB_FB_L_PROV)) {
+    map.addLayer({
+      id: WB_FB_L_PROV, type: 'line', source: WB_FB_SRC_LAND,
+      paint: { 'line-color': '#c3b28c', 'line-width': 0.9, 'line-opacity': 0.9 },
+    }, at);
+    at = WB_FB_L_PROV;
+  }
+  if (!map.getLayer(WB_FB_L_DASH)) {
+    map.addLayer({
+      id: WB_FB_L_DASH, type: 'line', source: WB_FB_SRC_DASH,
+      paint: { 'line-color': '#9a5524', 'line-width': 1.8, 'line-dasharray': [2, 1.8], 'line-opacity': 0.95 },
+    }, at);
   }
 }
 
-function swapMapBasemap(map, on) {
-  ensureFallbackSources(map);
-  // on=true：启用当前降级档位、隐藏天地图与其余档位；on=false：全部隐藏并恢复天地图
-  for (const item of WB_FALLBACK_CHAIN) {
-    if (map.getLayer(item.id)) {
-      const want = on && item.id === wbFallbackSourceId(tdtHealth.chainIdx) ? 'visible' : 'none';
-      map.setLayoutProperty(item.id, 'visibility', want);
-    }
+// 降级底图中文注记：DOM 标签（地图样式未配 glyphs，不用 symbol 文本图层）。
+// z<6.3 标省级名，z≥6.3 切换为九个焦点城市名；香港/澳门特别行政区只绘图形不标名。
+function ensureFbMarkers(map, provinces) {
+  if (map._wbFbMarkers) return;
+  const made = [];
+  const add = (lng, lat, cls, text, isCity) => {
+    const node = el('span', { class: `wbfb-label ${cls}` });
+    node.textContent = text;
+    node._wbCity = !!isCity;
+    made.push(new maplibregl.Marker({ element: node, anchor: 'center' }).setLngLat([lng, lat]).addTo(map));
+  };
+  const seen = new Set();
+  for (const f of (provinces.features || [])) {
+    const name = f.properties && f.properties.name;
+    if (!name || seen.has(name)) continue;
+    seen.add(name);
+    if (/^(香港|澳门)特别行政区$/.test(name)) continue;
+    const c = polygonCentroid(f.geometry);
+    if (c) add(c.lng, c.lat, 'wbfb-label-prov', name, false);
   }
+  add(114.6, 13.6, 'wbfb-label-dash', '南海诸岛', false);
+  for (const c of WB_FB_CITY_LABELS) add(c.lng, c.lat, 'wbfb-label-city', c.name, true);
+  const sync = () => {
+    let showCity = false;
+    try { showCity = map.getZoom() >= 6.3; } catch (e) { return; }
+    for (const mk of made) {
+      const node = mk.getElement();
+      node.style.display = (!!node._wbCity) === showCity ? 'block' : 'none';
+    }
+  };
+  map.on('zoom', sync);
+  sync();
+  map._wbFbMarkers = {
+    made,
+    off() {
+      try { map.off('zoom', sync); } catch (e) {}
+      for (const mk of made) { try { mk.remove(); } catch (e) {} }
+    },
+  };
+}
+
+// 降级状态应用器：on=true 启用自绘矢量底图并隐藏天地图；on=false 还原天地图并拆除注记
+async function swapMapBasemap(map, on) {
+  if (!map || map._wbRemoved) return;
   for (const id of BASE_ONLINE_LAYERS) {
     if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', on ? 'none' : 'visible');
+  }
+  if (!on) {
+    for (const id of [WB_FB_L_LAND, WB_FB_L_PROV, WB_FB_L_DASH]) {
+      if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'none');
+    }
+    if (map._wbFbMarkers) { map._wbFbMarkers.off(); map._wbFbMarkers = null; }
+    return;
+  }
+  try {
+    const { provinces } = await wbFbGeoJson();
+    ensureFbLayers(map, provinces);
+    ensureFbMarkers(map, provinces);
+    for (const id of [WB_FB_L_LAND, WB_FB_L_PROV, WB_FB_L_DASH]) {
+      if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'visible');
+    }
+  } catch (err) {
+    // 数据加载失败（极罕见，仓库内静态资源）：保留天地图隐藏状态，等待下次探测恢复
+    console.warn('[basemap] 自绘降级底图数据加载失败', err);
   }
 }
 
@@ -251,70 +347,22 @@ function announceFallback(on, detail) {
   } catch (e) {}
 }
 
-// 挑选可用档位后整体换装（多档级联，CARTO→Esri→OSM）
-// 天地图请求立即泄压：降级后天地图图层已隐藏，排队中的节流任务继续空打只会拖慢整体
+// 天地图泄压：降级后天地图图层已隐藏，排队中的节流任务空打只会拖慢整体
 function flushTdtQueue(reason) {
   if (!tdtQueue.length) return;
   const queued = tdtQueue.splice(0, tdtQueue.length);
   for (const job of queued) { try { job.cancel(); } catch (e) {} }
 }
 
-function wbTileUrl(item, z, x, y) {
-  return item.tiles[(x + y) % item.tiles.length]
-    .replace('{z}', z).replace('{x}', x).replace('{y}', y);
-}
-
-// 视口瓦片预热：拿当前相机的 3×3 瓦片模板 URL，挂图层前先经 fetch 写进 HTTP 缓存，
-// MapLibre 随后同 URL 的请求直接命中缓存——省掉"图层已显示但每张瓦片各自慢连"的空窗。
-function wbViewportTileUrls(map, item) {
-  const urls = [];
-  try {
-    const z = Math.max(2, Math.min(item.maxzoom, Math.ceil(Math.max(0, map.getZoom()))));
-    const c = map.getCenter();
-    const lat = Math.max(-85, Math.min(85, c.lat));
-    const n = 1 << z;
-    const xt = Math.floor(((c.lng + 180) / 360) * n);
-    const s = Math.sin((lat * Math.PI) / 180);
-    const yt = Math.floor((0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * n);
-    for (let dy = -1; dy <= 1; dy++) {
-      for (let dx = -1; dx <= 1; dx++) {
-        const x = xt + dx, y = yt + dy;
-        if (x < 0 || y < 0 || x >= n || y >= n) continue;
-        urls.push(wbTileUrl(item, z, x, y));
-      }
-    }
-  } catch (e) { /* 相机未就绪时跳过 */ }
-  return urls;
-}
-
-async function warmViewportTiles(item) {
-  const jobs = [];
-  for (const map of basemapWatchers) {
-    for (const url of wbViewportTileUrls(map, item)) {
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 4000);
-      jobs.push(fetch(url, { signal: ctrl.signal, credentials: 'omit', referrerPolicy: 'no-referrer-when-downgrade' })
-        .catch(() => {})
-        .finally(() => clearTimeout(timer)));
-    }
-  }
-  if (!jobs.length) return;
-  // 预热封顶 3s：缓存命中多少算多少图，不拖住换装
-  const cap = new Promise((r) => setTimeout(r, 3000));
-  await Promise.race([Promise.allSettled(jobs), cap]);
-}
-
-// 挑选可用档位后整体换装（并行探档·首到者胜出 → 视口预取 → 换装显示）
+// 挑级降级换装：天地图请求立即泄压（降级后天地图图层已隐藏，排队中的节流任务
+// 空打只会拖慢整体），再逐图应用「自绘中国标准矢量底图」，完成后广播降级署名
 async function swapToFallback() {
   flushTdtQueue('fallback');
-  let idx = 0;
-  try { idx = await pickFallbackIdx(); } catch (e) {}
-  tdtHealth.chainIdx = idx;
-  // 预热放在"图层可见"之前：命中缓存的首图即刻入画
-  await warmViewportTiles(WB_FALLBACK_CHAIN[idx]).catch(() => {});
-  for (const map of basemapWatchers) { try { swapMapBasemap(map, true); } catch (e) {} }
-  const item = WB_FALLBACK_CHAIN[tdtHealth.chainIdx];
-  announceFallback(true, { name: item.label, attr: item.attr });
+  for (const map of basemapWatchers) { try { await swapMapBasemap(map, true); } catch (e) {} }
+  announceFallback(true, {
+    name: '自绘中国标准矢量底图',
+    attr: '省级区划（含台湾省）与十段线均为仓库自绘数据',
+  });
 }
 
 function startRecoveryProbe() {
@@ -331,7 +379,7 @@ function startRecoveryProbe() {
         if (tdtHealth.probeWins >= TDT_RECOVER_PROBES) {
           tdtHealth.swapped = false;
           stopRecoveryProbe();
-          for (const map of basemapWatchers) { try { swapMapBasemap(map, false); } catch (e) {} }
+          for (const map of basemapWatchers) { swapMapBasemap(map, false).catch(() => {}); }
           announceFallback(false);
         }
       } else {
@@ -367,7 +415,8 @@ function noteTdtResult(ok) {
 export function watchBasemapHealth(map) {
   if (!map || basemapWatchers.has(map)) return;
   basemapWatchers.add(map);
-  if (tdtHealth.swapped) { try { swapMapBasemap(map, true); } catch (e) {} }
+  wbFbPreload();
+  if (tdtHealth.swapped) swapMapBasemap(map, true).catch(() => {});
   const onRemove = () => {
     basemapWatchers.delete(map);
     try { map.off('remove', onRemove); } catch (e) {}

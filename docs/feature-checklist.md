@@ -13,7 +13,7 @@
 | **Node.js 空间后端 (`server/server.cjs`)** | ✅ | 提供 REST 空间分析接口（`/api/spatial/buffer`、`/api/spatial/builtup`、`/api/heritage`）与 OGC 网关 |
 | 原生 HTML/CSS/ES Module（前端零框架） | ✅ | 严格符合，未引入 Vue/React 等 |
 | 本地 vendor 第三方库 | ✅ | MapLibre GL / ECharts / Turf.js 均在 `vendor/` |
-| 天地图在线底图（`vec_w` + `cva_w`，GS(2023)336号） | ✅ | 缩放硬锁至原生最高级 Z17；本地增强离线底图与底图切换按钮已下线（`verify-basemap.cjs` 断言无离线图层、无切换控件）；断网时专题矢量层与 3D 建筑仍可用，仅瓦片缺失 |
+| 天地图在线底图（`vec_w` + `cva_w`，GS(2023)336号） | ✅ | 缩放硬锁至原生最高级 Z17；本地增强离线底图与底图切换按钮已下线（`verify-basemap.cjs` 断言无离线图层、无切换控件）；限流/断网时专题矢量层与 3D 建筑仍可用，且**自动降级到自绘中国标准矢量底图**（省级区划含台湾省 + 十段线，`verify-fallback.cjs` 断言无任何外国栅格备用层） |
 
 ## 二、首页·序厅
 | 功能 | 状态 | 说明 |

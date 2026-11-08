@@ -367,91 +367,203 @@
   var TDT_STALL_WINDOW_MS = 1e4;
   var TDT_RECOVER_PROBES = 2;
   var TDT_PROBE_INTERVAL_MS = 6e4;
-  var WB_FALLBACK_CHAIN = [
-    {
-      id: "wb-esr",
-      label: "Esri \u7070\u5E95 Canvas",
-      attr: "\xA9 Esri \xB7 World Light Gray Canvas",
-      tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}"],
-      maxzoom: 16,
-      probe: { z: 9, y: 223, x: 419 }
-    },
-    {
-      id: "wb-hot",
-      label: "OSM FR HOT \u74E6\u7247",
-      attr: "\xA9 OpenStreetMap contributors \xB7 \u98CE\u683C HOT\uFF08Humanitarian OSM Team\uFF09via openstreetmap.fr",
-      tiles: ["a", "b", "c"].map((s) => `https://${s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png`),
-      maxzoom: 19,
-      probe: { z: 9, y: 223, x: 419 }
-    },
-    {
-      id: "wb-osm",
-      label: "OSM \u5B98\u65B9\u6807\u51C6\u74E6\u7247",
-      attr: "\xA9 OpenStreetMap contributors",
-      tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-      maxzoom: 19,
-      probe: { z: 9, y: 223, x: 419 }
-    }
-  ];
-  var WB_FALLBACK_PAINT = { "raster-opacity": 0.92, "raster-saturation": -0.35, "raster-contrast": -0.03 };
-  var TDT_FALLBACK_TIMEOUT_MS = 3e3;
   var basemapWatchers = /* @__PURE__ */ new Set();
-  var tdtHealth = { fails: [], swapped: false, probeWins: 0, probeTimer: null, chainIdx: 0 };
-  function wbFallbackSourceId(idx) {
-    return WB_FALLBACK_CHAIN[idx].id;
-  }
-  function wbProbeUrl(item) {
-    return item.tiles[0].replace("{z}", item.probe ? item.probe.z : 5).replace("{x}", item.probe ? item.probe.x : 13).replace("{y}", item.probe ? item.probe.y : 6);
-  }
-  function pickFallbackIdx() {
-    return new Promise((resolve) => {
-      let done = false;
-      const finish = (i) => {
-        if (!done) {
-          done = true;
-          resolve(i);
-        }
-      };
-      WB_FALLBACK_CHAIN.forEach((item, i) => {
-        const ctrl = new AbortController();
-        const timer = setTimeout(() => ctrl.abort(), TDT_FALLBACK_TIMEOUT_MS);
-        fetch(wbProbeUrl(item), { signal: ctrl.signal, credentials: "omit", referrerPolicy: "no-referrer-when-downgrade" }).then((res) => {
-          clearTimeout(timer);
-          const ct = res.headers.get("content-type") || "";
-          if (res.ok && ct.indexOf("image/") === 0) finish(i);
-        }).catch(() => clearTimeout(timer));
+  var tdtHealth = { fails: [], swapped: false, probeWins: 0, probeTimer: null };
+  var WB_FB_SRC_LAND = "wb-fb-land-src";
+  var WB_FB_SRC_DASH = "wb-fb-dash-src";
+  var WB_FB_L_LAND = "wb-fb-land";
+  var WB_FB_L_PROV = "wb-fb-prov";
+  var WB_FB_L_DASH = "wb-fb-dash";
+  var WB_TEN_DASH_COORDS = [
+    [[109.51763678906526, 16.360467782665847], [109.72339159230361, 16.05587198177934], [109.8780414893003, 15.766823920473868], [109.96506402665503, 15.526031073258686], [109.98526818797363, 15.335615618596712]],
+    [[110.48331454715199, 12.431407837351566], [110.48240767589328, 12.085792287259398], [110.45136562643113, 11.863835000833953], [110.25652028695671, 11.393616070326182]],
+    [[108.3388949586325, 7.26656318024262], [108.30727608084116, 6.727803403200289], [108.35631901989032, 6.112648053307836]],
+    [[111.94112275674237, 3.553559321848772], [112.40151782268552, 3.646409974664658], [112.92104341055976, 3.845112027649191]],
+    [[115.69079809651517, 7.29016984601141], [116.4095482213759, 8.137962397303875]],
+    [[118.63503455703679, 11.080904139262175], [118.85587024190139, 11.457907321145406], [119.10128629647166, 12.062751715859875], [119.12181771101825, 12.135585760471585]],
+    [[119.60808384544805, 18.143451232827125], [119.91075760817219, 18.77194701315816], [120.11918953031866, 19.117669954512905]],
+    [[121.40591812413318, 20.8001943859176], [122.12216430894797, 21.716094829922323]],
+    [[122.80328441666389, 23.665545127578547], [123.00481138309124, 24.74934291726869]],
+    [[119.16836075308866, 15.107448879733406], [119.16981236678279, 15.755038547478351], [119.17823197590195, 16.265658015720753]]
+  ];
+  var WB_FB_CITY_LABELS = [
+    { name: "\u6DF1\u5733", lng: 114.0579, lat: 22.5431 },
+    { name: "\u4E0A\u6D77", lng: 121.4737, lat: 31.2304 },
+    { name: "\u5E7F\u5DDE", lng: 113.2644, lat: 23.1291 },
+    { name: "\u53A6\u95E8", lng: 118.0894, lat: 24.4798 },
+    { name: "\u5317\u4EAC", lng: 116.4074, lat: 39.9042 },
+    { name: "\u676D\u5DDE", lng: 120.1551, lat: 30.2741 },
+    { name: "\u6B66\u6C49", lng: 114.3055, lat: 30.5928 },
+    { name: "\u6210\u90FD", lng: 104.0668, lat: 30.5728 },
+    { name: "\u9752\u5C9B", lng: 120.3826, lat: 36.0671 }
+  ];
+  var wbFbDataPromise = null;
+  function wbFbGeoJson() {
+    if (!wbFbDataPromise) {
+      wbFbDataPromise = fetchJSON(dataUrl("china-provinces.geojson"), { noCache: true }).then((provinces) => ({ provinces })).catch((err) => {
+        wbFbDataPromise = null;
+        throw err;
       });
-      setTimeout(() => finish(0), TDT_FALLBACK_TIMEOUT_MS + 120);
-    });
+    }
+    return wbFbDataPromise;
   }
-  function ensureFallbackSources(map2) {
-    const anchor = ["bu3d-city-ov", "bu3d-city", "tdt-vec", "tdt-cva"].find((id) => map2.getLayer(id)) || void 0;
-    for (const item of WB_FALLBACK_CHAIN) {
-      if (!map2.getSource(item.id)) {
-        map2.addSource(item.id, {
-          type: "raster",
-          tiles: item.tiles,
-          tileSize: 256,
-          minzoom: 0,
-          maxzoom: item.maxzoom,
-          attribution: item.attr
+  function wbFbPreload() {
+    if (wbFbDataPromise) return;
+    setTimeout(() => {
+      try {
+        wbFbGeoJson().catch(() => {
         });
+      } catch (e) {
       }
-      if (!map2.getLayer(item.id)) {
-        map2.addLayer({ id: item.id, type: "raster", source: item.id, paint: WB_FALLBACK_PAINT, layout: { visibility: "none" } }, anchor);
+    }, 300);
+  }
+  function polygonCentroid(geom) {
+    try {
+      const polys = geom.type === "Polygon" ? [geom.coordinates] : geom.type === "MultiPolygon" ? geom.coordinates : [];
+      let sx = 0, sy = 0, n = 0;
+      for (const poly of polys) for (const ring of poly) for (const [x, y] of ring) {
+        sx += x;
+        sy += y;
+        n += 1;
       }
+      return n ? { lng: sx / n, lat: sy / n } : null;
+    } catch (e) {
+      return null;
     }
   }
-  function swapMapBasemap(map2, on) {
-    ensureFallbackSources(map2);
-    for (const item of WB_FALLBACK_CHAIN) {
-      if (map2.getLayer(item.id)) {
-        const want = on && item.id === wbFallbackSourceId(tdtHealth.chainIdx) ? "visible" : "none";
-        map2.setLayoutProperty(item.id, "visibility", want);
-      }
+  function ensureFbLayers(map2, provinces) {
+    if (!map2.getSource(WB_FB_SRC_LAND)) {
+      map2.addSource(WB_FB_SRC_LAND, { type: "geojson", data: provinces });
     }
+    if (!map2.getSource(WB_FB_SRC_DASH)) {
+      map2.addSource(WB_FB_SRC_DASH, {
+        type: "geojson",
+        data: {
+          type: "FeatureCollection",
+          features: [{
+            type: "Feature",
+            properties: { name: "\u5341\u6BB5\u7EBF" },
+            geometry: { type: "MultiLineString", coordinates: WB_TEN_DASH_COORDS }
+          }]
+        }
+      });
+      map2._wbFbDashCoords = WB_TEN_DASH_COORDS;
+      map2._wbFbProvNames = (() => {
+        try {
+          const names = /* @__PURE__ */ new Set();
+          for (const f of provinces.features || []) {
+            const n = f.properties && f.properties.name;
+            if (n && !/^(香港|澳门)特别行政区$/.test(n)) names.add(n);
+          }
+          return [...names];
+        } catch (e) {
+          return [];
+        }
+      })();
+    }
+    const anchor = ["bu3d-city-ov", "bu3d-city", "tdt-vec", "tdt-cva"].find((id) => map2.getLayer(id)) || void 0;
+    let at = anchor;
+    if (!map2.getLayer(WB_FB_L_LAND)) {
+      map2.addLayer({
+        id: WB_FB_L_LAND,
+        type: "fill",
+        source: WB_FB_SRC_LAND,
+        paint: { "fill-color": "#ece2cc", "fill-opacity": 0.97 }
+      }, at);
+      at = WB_FB_L_LAND;
+    }
+    if (!map2.getLayer(WB_FB_L_PROV)) {
+      map2.addLayer({
+        id: WB_FB_L_PROV,
+        type: "line",
+        source: WB_FB_SRC_LAND,
+        paint: { "line-color": "#c3b28c", "line-width": 0.9, "line-opacity": 0.9 }
+      }, at);
+      at = WB_FB_L_PROV;
+    }
+    if (!map2.getLayer(WB_FB_L_DASH)) {
+      map2.addLayer({
+        id: WB_FB_L_DASH,
+        type: "line",
+        source: WB_FB_SRC_DASH,
+        paint: { "line-color": "#9a5524", "line-width": 1.8, "line-dasharray": [2, 1.8], "line-opacity": 0.95 }
+      }, at);
+    }
+  }
+  function ensureFbMarkers(map2, provinces) {
+    if (map2._wbFbMarkers) return;
+    const made = [];
+    const add = (lng, lat, cls, text, isCity) => {
+      const node = el("span", { class: `wbfb-label ${cls}` });
+      node.textContent = text;
+      node._wbCity = !!isCity;
+      made.push(new maplibregl.Marker({ element: node, anchor: "center" }).setLngLat([lng, lat]).addTo(map2));
+    };
+    const seen = /* @__PURE__ */ new Set();
+    for (const f of provinces.features || []) {
+      const name = f.properties && f.properties.name;
+      if (!name || seen.has(name)) continue;
+      seen.add(name);
+      if (/^(香港|澳门)特别行政区$/.test(name)) continue;
+      const c = polygonCentroid(f.geometry);
+      if (c) add(c.lng, c.lat, "wbfb-label-prov", name, false);
+    }
+    add(114.6, 13.6, "wbfb-label-dash", "\u5357\u6D77\u8BF8\u5C9B", false);
+    for (const c of WB_FB_CITY_LABELS) add(c.lng, c.lat, "wbfb-label-city", c.name, true);
+    const sync = () => {
+      let showCity = false;
+      try {
+        showCity = map2.getZoom() >= 6.3;
+      } catch (e) {
+        return;
+      }
+      for (const mk of made) {
+        const node = mk.getElement();
+        node.style.display = !!node._wbCity === showCity ? "block" : "none";
+      }
+    };
+    map2.on("zoom", sync);
+    sync();
+    map2._wbFbMarkers = {
+      made,
+      off() {
+        try {
+          map2.off("zoom", sync);
+        } catch (e) {
+        }
+        for (const mk of made) {
+          try {
+            mk.remove();
+          } catch (e) {
+          }
+        }
+      }
+    };
+  }
+  async function swapMapBasemap(map2, on) {
+    if (!map2 || map2._wbRemoved) return;
     for (const id of BASE_ONLINE_LAYERS) {
       if (map2.getLayer(id)) map2.setLayoutProperty(id, "visibility", on ? "none" : "visible");
+    }
+    if (!on) {
+      for (const id of [WB_FB_L_LAND, WB_FB_L_PROV, WB_FB_L_DASH]) {
+        if (map2.getLayer(id)) map2.setLayoutProperty(id, "visibility", "none");
+      }
+      if (map2._wbFbMarkers) {
+        map2._wbFbMarkers.off();
+        map2._wbFbMarkers = null;
+      }
+      return;
+    }
+    try {
+      const { provinces } = await wbFbGeoJson();
+      ensureFbLayers(map2, provinces);
+      ensureFbMarkers(map2, provinces);
+      for (const id of [WB_FB_L_LAND, WB_FB_L_PROV, WB_FB_L_DASH]) {
+        if (map2.getLayer(id)) map2.setLayoutProperty(id, "visibility", "visible");
+      }
+    } catch (err) {
+      console.warn("[basemap] \u81EA\u7ED8\u964D\u7EA7\u5E95\u56FE\u6570\u636E\u52A0\u8F7D\u5931\u8D25", err);
     }
   }
   function announceFallback(on, detail) {
@@ -470,62 +582,18 @@
       }
     }
   }
-  function wbTileUrl(item, z, x, y) {
-    return item.tiles[(x + y) % item.tiles.length].replace("{z}", z).replace("{x}", x).replace("{y}", y);
-  }
-  function wbViewportTileUrls(map2, item) {
-    const urls = [];
-    try {
-      const z = Math.max(2, Math.min(item.maxzoom, Math.ceil(Math.max(0, map2.getZoom()))));
-      const c = map2.getCenter();
-      const lat = Math.max(-85, Math.min(85, c.lat));
-      const n = 1 << z;
-      const xt = Math.floor((c.lng + 180) / 360 * n);
-      const s = Math.sin(lat * Math.PI / 180);
-      const yt = Math.floor((0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * n);
-      for (let dy = -1; dy <= 1; dy++) {
-        for (let dx = -1; dx <= 1; dx++) {
-          const x = xt + dx, y = yt + dy;
-          if (x < 0 || y < 0 || x >= n || y >= n) continue;
-          urls.push(wbTileUrl(item, z, x, y));
-        }
-      }
-    } catch (e) {
-    }
-    return urls;
-  }
-  async function warmViewportTiles(item) {
-    const jobs = [];
-    for (const map2 of basemapWatchers) {
-      for (const url of wbViewportTileUrls(map2, item)) {
-        const ctrl = new AbortController();
-        const timer = setTimeout(() => ctrl.abort(), 4e3);
-        jobs.push(fetch(url, { signal: ctrl.signal, credentials: "omit", referrerPolicy: "no-referrer-when-downgrade" }).catch(() => {
-        }).finally(() => clearTimeout(timer)));
-      }
-    }
-    if (!jobs.length) return;
-    const cap = new Promise((r) => setTimeout(r, 3e3));
-    await Promise.race([Promise.allSettled(jobs), cap]);
-  }
   async function swapToFallback() {
     flushTdtQueue("fallback");
-    let idx = 0;
-    try {
-      idx = await pickFallbackIdx();
-    } catch (e) {
-    }
-    tdtHealth.chainIdx = idx;
-    await warmViewportTiles(WB_FALLBACK_CHAIN[idx]).catch(() => {
-    });
     for (const map2 of basemapWatchers) {
       try {
-        swapMapBasemap(map2, true);
+        await swapMapBasemap(map2, true);
       } catch (e) {
       }
     }
-    const item = WB_FALLBACK_CHAIN[tdtHealth.chainIdx];
-    announceFallback(true, { name: item.label, attr: item.attr });
+    announceFallback(true, {
+      name: "\u81EA\u7ED8\u4E2D\u56FD\u6807\u51C6\u77E2\u91CF\u5E95\u56FE",
+      attr: "\u7701\u7EA7\u533A\u5212\uFF08\u542B\u53F0\u6E7E\u7701\uFF09\u4E0E\u5341\u6BB5\u7EBF\u5747\u4E3A\u4ED3\u5E93\u81EA\u7ED8\u6570\u636E"
+    });
   }
   function startRecoveryProbe() {
     if (tdtHealth.probeTimer) return;
@@ -548,10 +616,8 @@
             tdtHealth.swapped = false;
             stopRecoveryProbe();
             for (const map2 of basemapWatchers) {
-              try {
-                swapMapBasemap(map2, false);
-              } catch (e) {
-              }
+              swapMapBasemap(map2, false).catch(() => {
+              });
             }
             announceFallback(false);
           }
@@ -586,12 +652,9 @@
   function watchBasemapHealth(map2) {
     if (!map2 || basemapWatchers.has(map2)) return;
     basemapWatchers.add(map2);
-    if (tdtHealth.swapped) {
-      try {
-        swapMapBasemap(map2, true);
-      } catch (e) {
-      }
-    }
+    wbFbPreload();
+    if (tdtHealth.swapped) swapMapBasemap(map2, true).catch(() => {
+    });
     const onRemove = () => {
       basemapWatchers.delete(map2);
       try {
@@ -4556,7 +4619,7 @@ WHERE ST_DWithin(h.geom::geography, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 432
       if (on) {
         const name = e.detail && e.detail.name || "\u5907\u7528\u5E95\u56FE";
         const attr = e.detail && e.detail.attr || "";
-        showBasemapFallbackBanner(`\u5929\u5730\u56FE\u4ECA\u65E5\u74E6\u7247\u914D\u989D\u53D7\u9650\uFF0C\u5DF2\u4E34\u65F6\u542F\u7528\u5907\u7528\u5E95\u56FE ${name}\uFF08${attr}\uFF09\uFF0C\u6062\u590D\u540E\u81EA\u52A8\u5207\u56DE`, 1e4);
+        showBasemapFallbackBanner(`\u5929\u5730\u56FE\u4ECA\u65E5\u74E6\u7247\u914D\u989D\u53D7\u9650\uFF0C\u5DF2\u4E34\u65F6\u5207\u6362\u5230${name}\uFF08${attr}\uFF09\uFF0C\u6062\u590D\u540E\u81EA\u52A8\u5207\u56DE`, 1e4);
       } else {
         showBasemapFallbackBanner("\u5929\u5730\u56FE\u5E95\u56FE\u5DF2\u6062\u590D\uFF08\xA9 \u5929\u5730\u56FE \xB7 GS(2023)336\u53F7\uFF09", 8e3);
       }
