@@ -8,8 +8,9 @@
 //    因此将地图实例 maxZoom 锁定为 17（对应天地图原生最高 18 级 1:1 清晰度），到达上限即禁止继续放大，
 //    从根源避免超限空白瓦片或过度拉伸模糊。
 
-// 天地图浏览器端密钥
-export const TIANDITU_TK = '0115fe79a0a766de4b4d1ea971fe18c3';
+// 天地图浏览器端密钥（换 key 时必须在 console.tianditu.gov.cn 绑定域名白名单：
+// 127.0.0.1 / yeston463.github.io；未绑定时该域请求 403「域名不匹配」→ 页面自动降级自绘底图）
+export const TIANDITU_TK = '6a7dc42ae90a528588b9f69989ae4e66';
 
 // 天地图 WMTS 最高原生瓦片矩阵级（TILEMATRIX 1..18）
 export const TIANDITU_TILE_MAX_ZOOM = 18;

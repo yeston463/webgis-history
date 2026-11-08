@@ -31,8 +31,10 @@ const TDT_CVA_PAINT = {
 
 function tdtTiles(layer) {
   const subs = ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7'];
-  return subs.map((s) =>
-    `tdtQ://${encodeURIComponent(`https://${s}.tianditu.gov.cn/${layer}/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${layer.split('_')[0]}&STYLE=default&TILEMATRIXSET=w&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=tiles&tk=${TIANDITU_TK}`)}`);
+  // encodeURIComponent 会把 {z}/{y}/{x} 转义成 %7Bz%7D（%7D 等），MapLibre 的模板替换只认
+  // '{z}' 字面量——必须把花括号还原，占位符替换才能生效（否则真实请求带 {z} → 天地图 400）。
+  return subs.map((s) => `tdtQ://${encodeURIComponent(`https://${s}.tianditu.gov.cn/${layer}/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${layer.split('_')[0]}&STYLE=default&TILEMATRIXSET=w&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=tiles&tk=${TIANDITU_TK}`)
+    .replace(/%7B/g, '{').replace(/%7D/g, '}')}`);
 }
 
 /* -------------------------- 天地图瓦片请求节流与 429 退避重试 --------------------------

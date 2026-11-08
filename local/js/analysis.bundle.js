@@ -240,7 +240,7 @@
   }
 
   // js/config.js
-  var TIANDITU_TK = "0115fe79a0a766de4b4d1ea971fe18c3";
+  var TIANDITU_TK = "6a7dc42ae90a528588b9f69989ae4e66";
   var TIANDITU_TILE_MAX_ZOOM = 18;
   var TIANDITU_MIN_ZOOM = 2.2;
   var TIANDITU_MAX_ZOOM = 17;
@@ -265,7 +265,7 @@
   };
   function tdtTiles(layer) {
     const subs = ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7"];
-    return subs.map((s) => `tdtQ://${encodeURIComponent(`https://${s}.tianditu.gov.cn/${layer}/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${layer.split("_")[0]}&STYLE=default&TILEMATRIXSET=w&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=tiles&tk=${TIANDITU_TK}`)}`);
+    return subs.map((s) => `tdtQ://${encodeURIComponent(`https://${s}.tianditu.gov.cn/${layer}/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${layer.split("_")[0]}&STYLE=default&TILEMATRIXSET=w&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=tiles&tk=${TIANDITU_TK}`).replace(/%7B/g, "{").replace(/%7D/g, "}")}`);
   }
   var TDT_SCHEME = "tdtQ";
   var TDT_MAX_CONCURRENT = 6;
