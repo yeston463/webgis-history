@@ -20,3 +20,4 @@
 - 常规 JSON / GeoJSON 已内嵌到 js/local-data-*.js，避免 file:// 的 fetch 限制。
 - 九城建筑轮廓体积较大，放在 data/buildings/*.geojson.js，首次用到某座城市时才注入该片，不会在打开页面时全部读入。
 - 页面逻辑已打包到 js/*.bundle.js，避免 file:// 的 ES Module 限制。
+- 为控制提交包体积，本包内媒体与数据做过轻量化处理：图片最长边压缩至 1600px（JPEG 质量 82，大图不透明 PNG 压平为 JPEG 同名存放）；坐标与统计数值统一按 6 位小数存放（≈0.1 m 精度）。新闻发布会或高清投影展示如有需求，可用仓库完整版 assets/ 原件替换。

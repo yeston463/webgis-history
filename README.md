@@ -54,8 +54,9 @@ http://127.0.0.1:8000/
 ### 方式三：本地文件版（无需服务器，适合提交）
 
 ```bash
-node scripts/build-local.cjs          # 生成自包含的 local/ 目录
-python scripts/package_local.py       # 打成提交用 ZIP：山海新篇-本地文件版.zip
+node scripts/build-local.cjs          # 生成自包含的 local/ 目录（内置包内图片轻量化：最长边 1600px / JPEG q82，
+                                      #   近不透明大 PNG 压平为同名 JPEG；数值统一 6 位小数；local/README.txt 有披露）
+python scripts/package_local.py       # 打成提交用 ZIP：山海新篇-本地文件版.zip（约 30 MB）
 node scripts/verify-local.cjs         # file:// 断言
 python scripts/unpack_local.py        # 把 ZIP 解压到 test-results/zipcheck
 LOCAL_DIR=test-results/zipcheck node scripts/verify-local.cjs   # 对解压副本再跑一遍同样的断言

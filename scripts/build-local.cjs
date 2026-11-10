@@ -17,6 +17,30 @@ function copyDir(src, dest) {
 function readJson(rel) {
   return JSON.parse(fs.readFileSync(path.join(ROOT, rel), 'utf8'));
 }
+
+// 浮点瘦身：所有数字统一舍入到 6 位小数（≈0.1 m 级坐标精度，mm 级高度/统计精度）。
+// 源数据的坐标动辄 14+ 位小数，是 GeoJSON 文本膨胀的主因之一；此变换对渲染、
+// Turf/PostGIS 换算（面积/缓冲）与读数（km² 保留 2 位）均无可见影响。
+function roundNums(x) {
+  if (typeof x === 'number') return Math.round(x * 1e6) / 1e6;
+  if (Array.isArray(x)) { for (let i = 0; i < x.length; i++) x[i] = roundNums(x[i]); return x; }
+  if (x && typeof x === 'object') { for (const k of Object.keys(x)) x[k] = roundNums(x[k]); return x; }
+  return x;
+}
+const origReadJson = readJson;
+readJson = (rel) => roundNums(origReadJson(rel));
+
+// 压缩包内图片（本地副本）：JPEG 最长边 1600/质量 82；
+// 大 PNG 若近不透明（alpha 最小值 ≥200）→ 白底压平转 JPEG 同名存放；真透明 → 仅缩放重存。
+// 原始素材保持原样，仅在 local/ 与提交 ZIP 中生效；local/README.txt 有披露。
+function optimizeAssets() {
+  try {
+    const res = require('child_process').spawnSync('python', [path.join(__dirname, 'optimize_local_assets.py'), path.join(OUT, 'assets')], { stdio: 'inherit' });
+    if (res.error || res.status !== 0) console.log('  (资产压缩步骤被跳过：' + (res.error ? res.error.code || res.error.message : 'python 退出码 ' + res.status) + '，打包体积不受正确性影响)');
+  } catch (e) {
+    console.log('  (资产压缩步骤被跳过：' + e.message + ')');
+  }
+}
 function writeRegistry(name, keys) {
   const pairs = keys.map((key) => `${JSON.stringify(key)}:${JSON.stringify(readJson(key))}`);
   const js = `window.__LOCAL_FILE_BUILD__ = true;\nwindow.__LOCAL_DATA__ = Object.assign(window.__LOCAL_DATA__ || {}, {\n${pairs.join(',\n')}\n});\n`;
@@ -42,6 +66,7 @@ console.log('复制样式 / vendor / 图片 ...');
 copyDir(path.join(ROOT, 'css'), path.join(OUT, 'css'));
 copyDir(path.join(ROOT, 'vendor'), path.join(OUT, 'vendor'));
 copyDir(path.join(ROOT, 'assets'), path.join(OUT, 'assets'));
+optimizeAssets();
 
 const basemapKeys = [
   'data/china-provinces.geojson',
@@ -132,6 +157,7 @@ fs.writeFileSync(path.join(OUT, 'README.txt'), `山海新篇 · 本地文件版
 - 常规 JSON / GeoJSON 已内嵌到 js/local-data-*.js，避免 file:// 的 fetch 限制。
 - 九城建筑轮廓体积较大，放在 data/buildings/*.geojson.js，首次用到某座城市时才注入该片，不会在打开页面时全部读入。
 - 页面逻辑已打包到 js/*.bundle.js，避免 file:// 的 ES Module 限制。
+- 为控制提交包体积，本包内媒体与数据做过轻量化处理：图片最长边压缩至 1600px（JPEG 质量 82，大图不透明 PNG 压平为 JPEG 同名存放）；坐标与统计数值统一按 6 位小数存放（≈0.1 m 精度）。新闻发布会或高清投影展示如有需求，可用仓库完整版 assets/ 原件替换。
 `, 'utf8');
 
 console.log('完成：local/');
