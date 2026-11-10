@@ -12,6 +12,7 @@ import {
   formatZoomReadout,
   probeOnlineAvailable,
   basemapLabel,
+  repairBasemapTiles,
 } from './basemap.js';
 import { TIANDITU_MIN_ZOOM, TIANDITU_MAX_ZOOM } from './config.js';
 
@@ -64,6 +65,10 @@ export function createMap(containerId, options = {}) {
       try {
         await setupBasemap(map);
         map._wbLoaded = true;
+        // 相机运动结束后的补载：飞行/限流场景下最终瓦片可能停留在未完成状态，
+        // repairBasemapTiles 只对 loaded()==false / errored 的源 reload 一轮（封顶 4 遍），
+        // 与 3D 模块（analysis.js）的切城补载同款，均在原生管线自动重拉之外兜底。
+        map.on('moveend', () => { try { repairBasemapTiles(map); } catch (e) {} });
         probeOnlineAvailable().then((ok) => {
           if (!ok) {
             showBasemapBanner('天地图在线瓦片暂不可访问，请检查网络连接或密钥状态。');

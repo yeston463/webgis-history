@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><title>min-repro-raw</title>
+<script src="vendor/maplibre/maplibre-gl.js"></script>
+<style>html,body,#map{width:100%;height:100%;margin:0;padding:0}</style>
+</head>
+<body>
+<div id="map"></div>
+<script>
+/* 原生 raster 瓦片 + 飞行对照（无 addProtocol） */
+const tk = '6a7dc42ae90a528588b9f69989ae4e66';
+function tdttiles(layer) {
+  const subs = ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7'];
+  return subs.map((s) => 'https://' + s + '.tianditu.gov.cn/' + layer + '/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=' + layer.split('_')[0] + '&STYLE=default&TILEMATRIXSET=w&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=tiles&tk=' + tk);
+}
+const map = new maplibregl.Map({
+  container: 'map',
+  style: { version: 8, sources: {}, layers: [{ id: 'tdt-bg', type: 'background', paint: { 'background-color': '#f3ede2' } }] },
+  center: [104.5, 35.5],
+  zoom: 3.1,
+  minZoom: 2.2,
+  maxZoom: 17,
+  attributionControl: false,
+  dragRotate: false,
+  pitchWithRotate: false,
+  antialias: true,
+});
+window.__minMap = map;
+map.on('load', async () => {
+  map.addSource('tdt-vec', { type: 'raster', tiles: tdttiles('vec_w'), tileSize: 256, minzoom: 1, maxzoom: 18 });
+  map.addSource('tdt-cva', { type: 'raster', tiles: tdttiles('cva_w'), tileSize: 256, minzoom: 1, maxzoom: 18 });
+  map.addLayer({ id: 'tdt-vec', type: 'raster', source: 'tdt-vec' });
+  map.addLayer({ id: 'tdt-cva', type: 'raster', source: 'tdt-cva' });
+  await new Promise((r) => setTimeout(r, 500));
+  map.flyTo({ center: [113.98, 22.52], zoom: 10.6, duration: 2600 });
+  window.__TEST_READY = true;
+});
+</script>
+</body></html>

@@ -29,145 +29,31 @@ const TDT_CVA_PAINT = {
   'raster-contrast': 0.06,
 };
 
+/* ---------------------- 天地图瓦片加载（原生管线 + 事件驱动健康环） ----------------------
+ * 2026-11-10 关键修正：放弃 tdtQ:// 自定义协议，恢复 MapLibre 原生 raster 管线。
+ * 原因（实证自 min-repro）：自定义协议把"相机飞行中的瓦片中止"放大成自有 AbortError——
+ * MapLibre 会把 中止/失败的 tile 标为 unloaded 并把它视作"已就绪"，页面一进 idle 便再无
+ * 渲染帧去触发 _update，终帧瓦片永远不落地（复现了四城记忆/首页"进页即无底图"；2D/3D
+ * 分析模块 11-08 的底图缺失问题同根）。原生管线对中止/expired/errored 的瓦片会自行重拉，
+ * 无需我们代理；同飞行场景 raw 管线 loaded=true 132 张 200（tdtQ 协议形态 loaded=false）。
+ * 天地图浏览端 tk 的瞬时限流（超并发窗口被 400/429 拒）由下方事件驱动健康环：
+ *   - 10s 内连续 ≥8 次失败 → 隐藏天地图、切换为「自绘中国标准矢量底图」并广播
+ *     `wb-basemap-fallback` 事件，同时停发天地图瓦片让配额冷却，每 60s 探测恢复；
+ *   - 连续 2 次探测成功（间隔 60s）→ 自动切回天地图。
+ */
 function tdtTiles(layer) {
   const subs = ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7'];
-  // encodeURIComponent 会把 {z}/{y}/{x} 转义成 %7Bz%7D（%7D 等），MapLibre 的模板替换只认
-  // '{z}' 字面量——必须把花括号还原，占位符替换才能生效（否则真实请求带 {z} → 天地图 400）。
-  return subs.map((s) => `tdtQ://${encodeURIComponent(`https://${s}.tianditu.gov.cn/${layer}/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${layer.split('_')[0]}&STYLE=default&TILEMATRIXSET=w&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=tiles&tk=${TIANDITU_TK}`)
-    .replace(/%7B/g, '{').replace(/%7D/g, '}')}`);
+  return subs.map((s) =>
+    `https://${s}.tianditu.gov.cn/${layer}/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${layer.split('_')[0]}&STYLE=default&TILEMATRIXSET=w&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=tiles&tk=${TIANDITU_TK}`);
 }
 
-/* -------------------------- 天地图瓦片请求节流与 429 退避重试 --------------------------
- * 现象：3D 模块切换城市 / 卷帘扫过新区域时一次会拉起几十到上百张瓦片请求，天地图对 tk 有
- * QPS/分钟配额，瞬时爆发整批 429 被拒；MapLibre 对失败瓦片不自动补请求，留下持续空洞。
- * 措施：自定义 tdtQ:// 协议收口全部天地图栅格请求——
- *   1) 全局并发上限 6，削减瞬时突发；
- *   2) 429 / 5xx / 网络失败按 700ms·2^n 退避重试 3 次，重试成功即可正常入图；
- *   3) abort 立即让出槽位；排队上限 128，超限直接拒绝（优先保住当前视野的首屏瓦片）。
- */
-const TDT_SCHEME = 'tdtQ';
-const TDT_MAX_CONCURRENT = 6;
-const TDT_RETRY_MAX = 3;
-const TDT_RETRY_BASE_MS = 700;
-const TDT_QUEUE_MAX = 128;
-// 天地图浏览器端 key 有瞬时限流（超并发/超频窗口内请求会被用 400/429 拒掉），
-// 全页统一滑窗限速：每秒最多发起 TDT_MAX_PER_SEC 张，防止切城/复位一帧拉爆造成成片 400
-const TDT_MAX_PER_SEC = 20;
-let tdtActive = 0;
-const tdtQueue = [];
-const tdtSecBuckets = new Map();
-
-// 等待滑窗配额：桶键 = Math.floor(now / 1000)，旧桶懒清理
-function tdtRateWait() {
-  return new Promise((resolve) => {
-    const step = () => {
-      const idx = Math.floor(Date.now() / 1000);
-      const n = tdtSecBuckets.get(idx) || 0;
-      if (n < TDT_MAX_PER_SEC) {
-        tdtSecBuckets.set(idx, n + 1);
-        if (tdtSecBuckets.size > 4) {
-          const cutoff = idx - 3;
-          for (const k of tdtSecBuckets.keys()) { if (k < cutoff) tdtSecBuckets.delete(k); }
-        }
-        resolve();
-        return;
-      }
-      setTimeout(step, 70 + Math.floor(Math.random() * 60));
-    };
-    step();
-  });
-}
-
-function abortErr() { return new DOMException('Aborted', 'AbortError'); }
-
-function tdtEnqueue(task, signal) {
-  return new Promise((resolve, reject) => {
-    if (signal && signal.aborted) return reject(abortErr());
-    if (tdtQueue.length >= TDT_QUEUE_MAX) { const qe = new Error('tdt queue overflow'); qe.status = 429; return reject(qe); }
-    const job = { task, done: false };
-    job.cancel = () => {
-      if (job.done) return;
-      const idx = tdtQueue.indexOf(job);
-      if (idx >= 0) tdtQueue.splice(idx, 1); // 还在排队：让出位置
-      job.done = true;
-      job.cleanup();
-      reject(abortErr());
-    };
-    job.cleanup = () => { if (signal) Signal_remove(signal, job.cancel); };
-    job.settle = (err, value) => {
-      if (job.done) return;
-      job.done = true;
-      tdtActive = Math.max(0, tdtActive - 1);
-      job.cleanup();
-      err ? reject(err) : resolve(value);
-      pumpTdt();
-    };
-    if (signal) signal.addEventListener('abort', job.cancel, { once: true });
-    tdtQueue.push(job);
-    pumpTdt();
-  });
-}
-function Signal_remove(signal, fn) { if (signal && typeof signal.removeEventListener === 'function') signal.removeEventListener('abort', fn); }
-
-function pumpTdt() {
-  while (tdtActive < TDT_MAX_CONCURRENT && tdtQueue.length) {
-    const job = tdtQueue.shift();
-    tdtActive += 1;
-    Promise.resolve().then(() => job.task()).then(
-      (v) => job.settle(null, v),
-      (e) => job.settle(e),
-    );
-  }
-}
-
-async function tdtLoadProtocol(params, abortController) {
-  const real = decodeURIComponent(String(params.url || '').slice((TDT_SCHEME + '://').length));
-  const signal = abortController ? abortController.signal : undefined;
-  for (let attempt = 0; ; attempt++) {
-    let buf;
-    try {
-      if (signal && signal.aborted) throw abortErr();
-      await tdtRateWait();
-      buf = await tdtEnqueue(async () => {
-        const r = await fetch(real, { signal, credentials: 'omit', referrerPolicy: 'no-referrer-when-downgrade' });
-        if (!r.ok) { const err = new Error('tianditu ' + r.status); err.status = r.status; throw err; }
-        return r.arrayBuffer();
-      }, signal);
-      if (!buf.byteLength) { const err = new Error('tianditu empty'); err.status = 502; throw err; }
-      noteTdtResult(true);
-      return { data: buf };
-    } catch (err) {
-      if (signal && signal.aborted) throw abortErr();
-      const status = err && err.status;
-      // 400（瞬时限流的典型响应）/429/5xx 均按退避重试；其余状态（如 403 非法 key）直接失败；
-      // 健康环只统计**最终失败**（重试成功的不计），避免降级被高 NP 的瞬时抖动误触发
-      const retriable = attempt < TDT_RETRY_MAX
-        && (status === 400 || status === 429 || (status >= 500 && status <= 599) || status === undefined);
-      if (retriable) {
-        const jitter = Math.floor(Math.random() * 120);
-        await new Promise((r) => setTimeout(r, TDT_RETRY_BASE_MS * Math.pow(2, attempt) + jitter));
-        continue;
-      }
-      if (status === undefined || (status >= 400 && status <= 599) || status === 429) noteTdtResult(false);
-      throw err;
-    }
-  }
-}
-
-function registerTdtProtocol() {
-  if (typeof maplibregl === 'undefined' || typeof maplibregl.addProtocol !== 'function') return;
-  if (maplibregl.__wbTdtThrottled) return;
-  maplibregl.__wbTdtThrottled = true;
-  maplibregl.addProtocol(TDT_SCHEME, tdtLoadProtocol);
-}
-registerTdtProtocol();
 
 /* ------------------- 限流自动降级：自绘中国标准矢量底图 -------------------
- * tk 当日配额耗尽/限流时每张瓦片都 429，客户端重试救不了配额，页面只剩米色背景。
- * 天地图栅格请求收口在 tdtQ:// 协议里，天然拥有全网状态：
+ * tk 当日配额耗尽/限流时每张瓦片都 429，页面只剩米色背景。健康状态由各地图的
+ * `error` 事件（天地图源瓦片失败）驱动：
  *   - 10s 内连续 ≥8 次失败 → 全部已注册地图把天地图图层隐藏、切换为「自绘中国标准
- *     矢量底图」，并广播事件 `wb-basemap-fallback` 供页面提示与署名更新；同时停发
- *     天地图瓦片让配额冷却，每 60s 用单张样例瓦片探测恢复。
+ *     矢量底图」，并广播事件 `wb-basemap-fallback` 供页面提示与署名更新；同时揭除
+ *     天地图失败计数冷却，每 60s 用单张样例瓦片探测恢复。
  *   - 连续 2 次探测成功（间隔 60s）→ 自动切回天地图。
  * 2026-11-08 合规改造：备用底图不再使用任何外国栅格源（此前降级链会落到
  * Esri / OSM 瓦片——两者都不含九段线，还把台湾标注成独立国家的 "TAIWAN" 字样，
@@ -397,17 +283,10 @@ function announceFallback(on, detail) {
   } catch (e) {}
 }
 
-// 天地图泄压：降级后天地图图层已隐藏，排队中的节流任务空打只会拖慢整体
-function flushTdtQueue(reason) {
-  if (!tdtQueue.length) return;
-  const queued = tdtQueue.splice(0, tdtQueue.length);
-  for (const job of queued) { try { job.cancel(); } catch (e) {} }
-}
-
-// 挑级降级换装：天地图请求立即泄压（降级后天地图图层已隐藏，排队中的节流任务
-// 空打只会拖慢整体），再逐图应用「自绘中国标准矢量底图」，完成后广播降级署名
+// 挑级降级换装：逐图应用「自绘中国标准矢量底图」，完成后广播降级署名。
+// 健康环由各地图的 error 事件驱动——天地图栅格瓦片失败（含瞬时限流 400/429 与配额耗尽）
+// 都会触发 map 'error'。
 async function swapToFallback() {
-  flushTdtQueue('fallback');
   for (const map of basemapWatchers) { try { await swapMapBasemap(map, true); } catch (e) {} }
   announceFallback(true, {
     name: '自绘中国标准矢量底图',
@@ -462,10 +341,21 @@ function noteTdtResult(ok) {
 
 // setupBasemap / 各地图初始化完成后调用：成为自动降级的观察对象；
 // 若注册时已处于降级状态（页面早段限流，3D 地图 load 晚于 swap 阈值），立即同步应用。
+// 原生管线没有"全网收口"，健康环挂各地图自己的 error 事件（天地图源瓦片失败计数）。
 export function watchBasemapHealth(map) {
   if (!map || basemapWatchers.has(map)) return;
   basemapWatchers.add(map);
   wbFbPreload();
+  if (!map._wbHealthHook) {
+    map._wbHealthHook = true;
+    map.on('error', (e) => {
+      try {
+        const src = (e && e.sourceId) || '';
+        const msg = (e && ((e.error && e.error.message) || e.message)) || '';
+        if (BASE_ONLINE_LAYERS.indexOf(src) >= 0 || /tianditu|GetTile|tile/i.test(msg)) noteTdtResult(false);
+      } catch (err) {}
+    });
+  }
   if (tdtHealth.swapped) swapMapBasemap(map, true).catch(() => {});
   const onRemove = () => {
     basemapWatchers.delete(map);

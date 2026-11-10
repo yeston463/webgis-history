@@ -265,132 +265,8 @@
   };
   function tdtTiles(layer) {
     const subs = ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7"];
-    return subs.map((s) => `tdtQ://${encodeURIComponent(`https://${s}.tianditu.gov.cn/${layer}/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${layer.split("_")[0]}&STYLE=default&TILEMATRIXSET=w&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=tiles&tk=${TIANDITU_TK}`).replace(/%7B/g, "{").replace(/%7D/g, "}")}`);
+    return subs.map((s) => `https://${s}.tianditu.gov.cn/${layer}/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${layer.split("_")[0]}&STYLE=default&TILEMATRIXSET=w&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=tiles&tk=${TIANDITU_TK}`);
   }
-  var TDT_SCHEME = "tdtQ";
-  var TDT_MAX_CONCURRENT = 6;
-  var TDT_RETRY_MAX = 3;
-  var TDT_RETRY_BASE_MS = 700;
-  var TDT_QUEUE_MAX = 128;
-  var TDT_MAX_PER_SEC = 20;
-  var tdtActive = 0;
-  var tdtQueue = [];
-  var tdtSecBuckets = /* @__PURE__ */ new Map();
-  function tdtRateWait() {
-    return new Promise((resolve) => {
-      const step = () => {
-        const idx = Math.floor(Date.now() / 1e3);
-        const n = tdtSecBuckets.get(idx) || 0;
-        if (n < TDT_MAX_PER_SEC) {
-          tdtSecBuckets.set(idx, n + 1);
-          if (tdtSecBuckets.size > 4) {
-            const cutoff = idx - 3;
-            for (const k of tdtSecBuckets.keys()) {
-              if (k < cutoff) tdtSecBuckets.delete(k);
-            }
-          }
-          resolve();
-          return;
-        }
-        setTimeout(step, 70 + Math.floor(Math.random() * 60));
-      };
-      step();
-    });
-  }
-  function abortErr() {
-    return new DOMException("Aborted", "AbortError");
-  }
-  function tdtEnqueue(task, signal) {
-    return new Promise((resolve, reject) => {
-      if (signal && signal.aborted) return reject(abortErr());
-      if (tdtQueue.length >= TDT_QUEUE_MAX) {
-        const qe = new Error("tdt queue overflow");
-        qe.status = 429;
-        return reject(qe);
-      }
-      const job = { task, done: false };
-      job.cancel = () => {
-        if (job.done) return;
-        const idx = tdtQueue.indexOf(job);
-        if (idx >= 0) tdtQueue.splice(idx, 1);
-        job.done = true;
-        job.cleanup();
-        reject(abortErr());
-      };
-      job.cleanup = () => {
-        if (signal) Signal_remove(signal, job.cancel);
-      };
-      job.settle = (err, value) => {
-        if (job.done) return;
-        job.done = true;
-        tdtActive = Math.max(0, tdtActive - 1);
-        job.cleanup();
-        err ? reject(err) : resolve(value);
-        pumpTdt();
-      };
-      if (signal) signal.addEventListener("abort", job.cancel, { once: true });
-      tdtQueue.push(job);
-      pumpTdt();
-    });
-  }
-  function Signal_remove(signal, fn) {
-    if (signal && typeof signal.removeEventListener === "function") signal.removeEventListener("abort", fn);
-  }
-  function pumpTdt() {
-    while (tdtActive < TDT_MAX_CONCURRENT && tdtQueue.length) {
-      const job = tdtQueue.shift();
-      tdtActive += 1;
-      Promise.resolve().then(() => job.task()).then(
-        (v) => job.settle(null, v),
-        (e) => job.settle(e)
-      );
-    }
-  }
-  async function tdtLoadProtocol(params, abortController) {
-    const real = decodeURIComponent(String(params.url || "").slice((TDT_SCHEME + "://").length));
-    const signal = abortController ? abortController.signal : void 0;
-    for (let attempt = 0; ; attempt++) {
-      let buf;
-      try {
-        if (signal && signal.aborted) throw abortErr();
-        await tdtRateWait();
-        buf = await tdtEnqueue(async () => {
-          const r = await fetch(real, { signal, credentials: "omit", referrerPolicy: "no-referrer-when-downgrade" });
-          if (!r.ok) {
-            const err = new Error("tianditu " + r.status);
-            err.status = r.status;
-            throw err;
-          }
-          return r.arrayBuffer();
-        }, signal);
-        if (!buf.byteLength) {
-          const err = new Error("tianditu empty");
-          err.status = 502;
-          throw err;
-        }
-        noteTdtResult(true);
-        return { data: buf };
-      } catch (err) {
-        if (signal && signal.aborted) throw abortErr();
-        const status = err && err.status;
-        const retriable = attempt < TDT_RETRY_MAX && (status === 400 || status === 429 || status >= 500 && status <= 599 || status === void 0);
-        if (retriable) {
-          const jitter = Math.floor(Math.random() * 120);
-          await new Promise((r) => setTimeout(r, TDT_RETRY_BASE_MS * Math.pow(2, attempt) + jitter));
-          continue;
-        }
-        if (status === void 0 || status >= 400 && status <= 599 || status === 429) noteTdtResult(false);
-        throw err;
-      }
-    }
-  }
-  function registerTdtProtocol() {
-    if (typeof maplibregl === "undefined" || typeof maplibregl.addProtocol !== "function") return;
-    if (maplibregl.__wbTdtThrottled) return;
-    maplibregl.__wbTdtThrottled = true;
-    maplibregl.addProtocol(TDT_SCHEME, tdtLoadProtocol);
-  }
-  registerTdtProtocol();
   var TDT_STALL_FAILS = 8;
   var TDT_STALL_WINDOW_MS = 1e4;
   var TDT_RECOVER_PROBES = 2;
@@ -621,18 +497,7 @@
     } catch (e) {
     }
   }
-  function flushTdtQueue(reason) {
-    if (!tdtQueue.length) return;
-    const queued = tdtQueue.splice(0, tdtQueue.length);
-    for (const job of queued) {
-      try {
-        job.cancel();
-      } catch (e) {
-      }
-    }
-  }
   async function swapToFallback() {
-    flushTdtQueue("fallback");
     for (const map2 of basemapWatchers) {
       try {
         await swapMapBasemap(map2, true);
@@ -702,6 +567,17 @@
     if (!map2 || basemapWatchers.has(map2)) return;
     basemapWatchers.add(map2);
     wbFbPreload();
+    if (!map2._wbHealthHook) {
+      map2._wbHealthHook = true;
+      map2.on("error", (e) => {
+        try {
+          const src = e && e.sourceId || "";
+          const msg = e && (e.error && e.error.message || e.message) || "";
+          if (BASE_ONLINE_LAYERS.indexOf(src) >= 0 || /tianditu|GetTile|tile/i.test(msg)) noteTdtResult(false);
+        } catch (err) {
+        }
+      });
+    }
     if (tdtHealth.swapped) swapMapBasemap(map2, true).catch(() => {
     });
     const onRemove = () => {
