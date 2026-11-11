@@ -257,6 +257,23 @@ async function swapMapBasemap(map, on) {
   for (const id of BASE_ONLINE_LAYERS) {
     if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', on ? 'none' : 'visible');
   }
+  // 降级态常驻徽标：让"当前是自绘底图"这件事可见（此前只有 10s 横幅，错过就无感知）
+  try {
+    const container = map.getContainer();
+    if (container) {
+      let badge = container.querySelector('.wbfb-badge');
+      if (on && !badge) {
+        badge = document.createElement('div');
+        badge.className = 'wbfb-badge';
+        badge.setAttribute('role', 'status');
+        badge.title = '天地图在线瓦片当前不可达（网络/代理或 key 配额），已临时切换为自绘中国标准矢量底图；探测恢复后自动切回。';
+        badge.textContent = '自绘底图 · 天地图暂不可达';
+        container.appendChild(badge);
+      } else if (!on && badge) {
+        badge.remove();
+      }
+    }
+  } catch (e) {}
   if (!on) {
     for (const id of [WB_FB_L_LAND, WB_FB_L_PROV, WB_FB_L_DASH]) {
       if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'none');

@@ -470,6 +470,23 @@
     for (const id of BASE_ONLINE_LAYERS) {
       if (map2.getLayer(id)) map2.setLayoutProperty(id, "visibility", on ? "none" : "visible");
     }
+    try {
+      const container = map2.getContainer();
+      if (container) {
+        let badge = container.querySelector(".wbfb-badge");
+        if (on && !badge) {
+          badge = document.createElement("div");
+          badge.className = "wbfb-badge";
+          badge.setAttribute("role", "status");
+          badge.title = "\u5929\u5730\u56FE\u5728\u7EBF\u74E6\u7247\u5F53\u524D\u4E0D\u53EF\u8FBE\uFF08\u7F51\u7EDC/\u4EE3\u7406\u6216 key \u914D\u989D\uFF09\uFF0C\u5DF2\u4E34\u65F6\u5207\u6362\u4E3A\u81EA\u7ED8\u4E2D\u56FD\u6807\u51C6\u77E2\u91CF\u5E95\u56FE\uFF1B\u63A2\u6D4B\u6062\u590D\u540E\u81EA\u52A8\u5207\u56DE\u3002";
+          badge.textContent = "\u81EA\u7ED8\u5E95\u56FE \xB7 \u5929\u5730\u56FE\u6682\u4E0D\u53EF\u8FBE";
+          container.appendChild(badge);
+        } else if (!on && badge) {
+          badge.remove();
+        }
+      }
+    } catch (e) {
+    }
     if (!on) {
       for (const id of [WB_FB_L_LAND, WB_FB_L_PROV, WB_FB_L_DASH]) {
         if (map2.getLayer(id)) map2.setLayoutProperty(id, "visibility", "none");

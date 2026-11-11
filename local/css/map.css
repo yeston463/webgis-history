@@ -112,6 +112,26 @@ a.maplibregl-ctrl-logo {
   transform: translate(-50%, 0);
 }
 
+/* ---------- 自绘降级底图的常驻徽标（swapMapBasemap(on=true) 时挂载） ---------- */
+/* 放右上缩放控件下方，避开右下比例尺与底部状态栏 */
+.wbfb-badge {
+  position: absolute;
+  top: 96px;
+  right: 10px;
+  z-index: 12;
+  padding: 3px 10px;
+  border: 1px solid rgba(122, 90, 48, 0.55);
+  border-radius: 2px;
+  background: rgba(255, 251, 243, 0.92);
+  color: #7a5a30;
+  font-family: var(--font-body);
+  font-size: 11px;
+  letter-spacing: 1px;
+  line-height: 1.4;
+  pointer-events: none;
+  box-shadow: 0 1px 4px rgba(60, 46, 26, 0.18);
+}
+
 /* ---------- 自绘降级底图的中文注记（basemap.js 限流降级时使用的 DOM 标签） ---------- */
 /* 元素的定位/transform 由 maplibregl.Marker 内部管理，这里只做视觉样式 */
 .wbfb-label {

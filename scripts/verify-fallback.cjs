@@ -126,6 +126,14 @@ function log(name, ok, detail) {
   log('高层级（z11）注记：焦点城市 9 域可见、省级隐藏', !!cityOnProvOff && cityOnProvOff.city === 9 && cityOnProvOff.prov === 0,
     JSON.stringify(cityOnProvOff));
 
+  /* 1c. 降级态常驻徽标可见（自绘底图进行中） */
+  const badgeOn = await page.evaluate(() => {
+    const el = window.__bufMap.getContainer();
+    const b = el.querySelector('.wbfb-badge');
+    return !!b && b.offsetParent !== null;
+  });
+  log('降级态常驻徽标：地图右上角展示「自绘底图 · 天地图暂不可达」', badgeOn, `badgeOn=${badgeOn}`);
+
   /* 2. 限流解除 → 自动切回天地图（探测 60s 间隔 ×2 轮） */
   throttleTdt = false;
   const tRecover = Date.now();
@@ -135,6 +143,7 @@ function log(name, ok, detail) {
     await page.waitForTimeout(15000);
     const probe = await page.evaluate(() => ({
       ticks: window.__tdtProbeTicks || 0,
+      badge: !!window.__bu3D.map.getContainer().querySelector('.wbfb-badge'),
       markers: window.__bu3D.map.getContainer().querySelectorAll('.wbfb-label').length,
       vec: window.__bu3D.map.getLayoutProperty('tdt-vec', 'visibility'),
       cva: window.__bu3D.map.getLayoutProperty('tdt-cva', 'visibility'),
@@ -145,9 +154,9 @@ function log(name, ok, detail) {
     }));
     probeTicksSeen = probe.ticks;
     if (probe.vec === 'visible' && probe.cva === 'visible'
-      && probe.fb.every((v) => v === 'none') && probe.markers === 0) { recovered = true; break; }
+      && probe.fb.every((v) => v === 'none') && probe.markers === 0 && !probe.badge) { recovered = true; break; }
   }
-  log('限流解除（探测成功）→ 自动切回天地图并拆除自绘注记', recovered,
+  log('限流解除（探测成功）→ 自动切回天地图并拆除徽标与注记', recovered,
     `${((Date.now() - tRecover) / 1000).toFixed(1)}s 内切回, 探测 ticks=${probeTicksSeen}`);
   await page.screenshot({ path: 'test-shots/fallback-recovered.png' });
 
