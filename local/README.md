@@ -1,6 +1,9 @@
 # 山海新篇 · 四城记忆与 GIS 时空分析实验室 (WebGIS 全栈版)
 
 > 🌐 **在线演示（GitHub Pages）**：[https://yeston463.github.io/webgis-history/](https://yeston463.github.io/webgis-history/)  
+> 一个基于 **Node.js + PostGIS 空间数据库 + GeoServer (OGC WMS/WFS) + MapLibre GL JS + Turf.js** 的全栈 WebGIS 课程大作业。
+> 聚焦"真实空间数据 + PostGIS/Turf 椭球测地空间分析 + OGC 标准服务"，支持现场答辩与自由探索。
+> 当前站点仅保留**四城记忆**与**分析实验室**两大模块；历史文化/改革开放独立页已归档至 `_archive/2026-10-28-removed/`。
 
 ---
 
@@ -135,6 +138,8 @@ webgis-history/
 
 ## 5. 数据来源与 AI 辅助获取/处理说明 (Data Sources & AI Disclosure)
 
+本项目坚守 **"真实可核、模拟/推断明示、AI 全程透明披露"** 的学术与工程伦理规范。详尽的技术论证、字段溯源与处理算法可查阅专门文档：[docs/data-sources.md](docs/data-sources.md)。
+
 ### 5.1 核心数据与原始来源
 1. **历史文化遗产 (`data/heritage.geojson`)**：34 处真实点位（覆盖深圳、上海、广州、厦门四城重点地标与全国名胜），源于联合国教科文组织《世界遗产名录》、国家文物局全国重点文物保护单位名录及地方史志。
 2. **改革开放时空事件 (`data/reform-events.json`)**：32 起关键改革开放事件（1978–2020），源于新华社、中国政府网文献与地方史志。
@@ -152,3 +157,4 @@ webgis-history/
   - **高度插补（hs）**：针对 OSM 普遍缺失高度的问题，AI 构建四级递进估算模型（OSM height 标签 → 楼层数×3.2m → 同城同年代同类型中位数 → 同年代中位数 → 8m 兜底），并在界面实时披露来源百分比构成。
 - **跨年鉴统计口径比对与清洗**：AI 对 1980–2020 年常住人口与 GDP 数据进行跨期口径校准（剔除历史普查调整与核算修订带来的非自然跳变）。
 
+完整的数据来源、处理算法及学术引用规范详见 [docs/data-sources.md](docs/data-sources.md)。
