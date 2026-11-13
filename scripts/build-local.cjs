@@ -62,10 +62,12 @@ fs.rmSync(OUT, { recursive: true, force: true });
 ensureDir(path.join(OUT, 'js'));
 ensureDir(path.join(OUT, 'pages'));
 
-console.log('复制样式 / vendor / 图片 ...');
+console.log('复制样式 / vendor / 图片 / 文档 ...');
 copyDir(path.join(ROOT, 'css'), path.join(OUT, 'css'));
 copyDir(path.join(ROOT, 'vendor'), path.join(OUT, 'vendor'));
 copyDir(path.join(ROOT, 'assets'), path.join(OUT, 'assets'));
+copyDir(path.join(ROOT, 'docs'), path.join(OUT, 'docs'));
+fs.copyFileSync(path.join(ROOT, 'README.md'), path.join(OUT, 'README.md'));
 optimizeAssets();
 
 const basemapKeys = [
@@ -151,7 +153,7 @@ fs.writeFileSync(path.join(OUT, 'README.txt'), `山海新篇 · 本地文件版
 
 本地版不启用的部分
 - GeoServer WFS 实时请求与 PostGIS 在线入库需要运行完整 Node 后端，本地版已在“服务与入库”模块中标注并禁用相关按钮。
-- 完整全栈版本的启动方式见项目根目录 README 与 server/ 目录。
+- 完整全栈版本的启动方式见项目 README.md 与 server/ 目录。详细数据来源、AI 辅助获取/清洗/推断说明见 docs/data-sources.md。
 
 数据与脚本
 - 常规 JSON / GeoJSON 已内嵌到 js/local-data-*.js，避免 file:// 的 fetch 限制。

@@ -3,12 +3,31 @@
 #   PNG : >200KB 时检查 alpha——近不透明（min ≥ 200）→ 白底压平转 JPEG（同名存放，
 #         浏览器按内容嗅探解码，扩展名不影响）；真透明 → 保持 PNG，仅缩放重编码
 #   原始素材（仓库根 assets/）不动；该步骤只服务 local/ 与提交 ZIP 的体积控制。
+import io
 import os
 import sys
+import time
 from PIL import Image
 
 MAX_SIDE = 1600
 JPG_QUALITY = 82
+
+def safe_save(img, path, fmt, **kwargs):
+    norm_p = os.path.normpath(path)
+    tmp_p = norm_p + '.tmp'
+    img.save(tmp_p, fmt, **kwargs)
+    for attempt in range(5):
+        try:
+            os.replace(tmp_p, norm_p)
+            return True
+        except OSError:
+            time.sleep(0.05 * (attempt + 1))
+    if os.path.exists(tmp_p):
+        try:
+            os.remove(tmp_p)
+        except Exception:
+            pass
+    return False
 
 def main(root):
     if not os.path.isdir(root):
@@ -19,47 +38,59 @@ def main(root):
     touched = 0
     for dirpath, _, files in os.walk(root):
         for name in sorted(files):
-            p = os.path.join(dirpath, name)
+            p = os.path.normpath(os.path.join(dirpath, name))
             ext = os.path.splitext(name)[1].lower()
             if ext not in ('.jpg', '.jpeg', '.png'):
                 continue
             size0 = os.path.getsize(p)
             try:
-                im = Image.open(p)
+                with open(p, 'rb') as f:
+                    data = f.read()
+                im = Image.open(io.BytesIO(data))
                 im.load()
             except Exception:
                 skipped += 1
                 continue
             w, h = im.size
             side = max(w, h)
-            if ext in ('.jpg', '.jpeg'):
-                # 縮放 + 重编码
-                if side > MAX_SIDE:
-                    scale = MAX_SIDE / side
-                    im = im.resize((max(1, round(w * scale)), max(1, round(h * scale))), Image.LANCZOS)
-                if im.mode not in ('RGB', 'L'):
-                    im = im.convert('RGB')
-                im.save(p, 'JPEG', quality=JPG_QUALITY, optimize=True, progressive=True)
-            else:  # .png
-                if size0 <= 200_000:
-                    continue
-                rgba = im.convert('RGBA')
-                alpha = rgba.getchannel('A')
-                mn, _ = alpha.getextrema()
-                if mn >= 200:
-                    # 近不透明 → 白底压平 → JPEG 内容同名存放
-                    out = Image.new('RGB', rgba.size, (255, 255, 255))
-                    out.paste(rgba, mask=alpha)
-                    if max(out.size) > MAX_SIDE:
-                        scale = MAX_SIDE / max(out.size)
-                        out = out.resize((max(1, round(out.size[0] * scale)), max(1, round(out.size[1] * scale))), Image.LANCZOS)
-                    out.save(p, 'JPEG', quality=JPG_QUALITY + 3, optimize=True, progressive=True)
-                else:
-                    # 真透明 → 保持 PNG，仅缩放
+            ok = False
+            try:
+                if ext in ('.jpg', '.jpeg'):
+                    # 縮放 + 重编码
                     if side > MAX_SIDE:
                         scale = MAX_SIDE / side
-                        rgba = rgba.resize((max(1, round(w * scale)), max(1, round(h * scale))), Image.LANCZOS)
-                    rgba.save(p, 'PNG', optimize=True)
+                        im = im.resize((max(1, round(w * scale)), max(1, round(h * scale))), Image.LANCZOS)
+                    if im.mode not in ('RGB', 'L'):
+                        im = im.convert('RGB')
+                    ok = safe_save(im, p, 'JPEG', quality=JPG_QUALITY, optimize=True, progressive=True)
+                else:  # .png
+                    if size0 <= 200_000:
+                        continue
+                    rgba = im.convert('RGBA')
+                    alpha = rgba.getchannel('A')
+                    mn, _ = alpha.getextrema()
+                    if mn >= 200:
+                        # 近不透明 → 白底压平 → JPEG 内容同名存放
+                        out = Image.new('RGB', rgba.size, (255, 255, 255))
+                        out.paste(rgba, mask=alpha)
+                        if max(out.size) > MAX_SIDE:
+                            scale = MAX_SIDE / max(out.size)
+                            out = out.resize((max(1, round(out.size[0] * scale)), max(1, round(out.size[1] * scale))), Image.LANCZOS)
+                        ok = safe_save(out, p, 'JPEG', quality=JPG_QUALITY + 3, optimize=True, progressive=True)
+                    else:
+                        # 真透明 → 保持 PNG，仅缩放
+                        if side > MAX_SIDE:
+                            scale = MAX_SIDE / side
+                            rgba = rgba.resize((max(1, round(w * scale)), max(1, round(h * scale))), Image.LANCZOS)
+                        ok = safe_save(rgba, p, 'PNG', optimize=True)
+            except Exception:
+                skipped += 1
+                continue
+
+            if not ok:
+                skipped += 1
+                continue
+
             size1 = os.path.getsize(p)
             if size1 < size0:
                 saved += size0 - size1
